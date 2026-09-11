@@ -122,6 +122,23 @@ class ROSMonitor(Node):
             if 0.0 <distance < 1.0:
                 self.obstacle_detected = True
                 break
+
+
+    def position_broadcast_callback(self):
+        """Envoie la position et l'ID du robot en UDP broadcast toutes les secondes."""
+        try:
+            
+            socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            
+            socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+            
+            payload = pack("fffI", self.position[0], self.position[1], self.position[2], self.id)
+            
+            socket.sendto(payload, (self.broadcast, self.position_broad_port))
+            socket.close()
+            
+        except Exception as e:
+            self.get_logger().error(f"Erreur lors du broadcast UDP : {e}")
         
 
 

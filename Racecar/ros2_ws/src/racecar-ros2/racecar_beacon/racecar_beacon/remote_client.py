@@ -13,8 +13,7 @@ NOTES:
 
 def main():
     # TODO: Implement the RemoteRequest client here.
-    #server_ip = "10.0.1.21"
-    server_ip = "127.0.0.1"
+    server_ip = "10.0.1.21"
     server_port = 5000
 
 

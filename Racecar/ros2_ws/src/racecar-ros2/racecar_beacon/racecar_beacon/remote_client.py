@@ -25,8 +25,7 @@ def main():
     command=input("Commande (RPOS, OBSF ou RBID) : ")
 
     print(f"essai d'envoyer la commande {command}")
-    if sock.sendall(command.encode('ascii')):
-        print("erreur")
+    sock.sendall(command.encode('ascii'))
 
     data=sock.recv(16)
     print(f"data : {data}")

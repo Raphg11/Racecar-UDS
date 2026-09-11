@@ -43,7 +43,7 @@ class ROSMonitor(Node):
 
     def remote_request_loop(self):
         # NOTE: It is recommended to initialize your socket here.
-
+        
         # TODO: Implement the RemoteRequest service here.
         while rclpy.ok():
             pass

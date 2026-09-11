@@ -23,9 +23,9 @@ def main():
     while True:
         data, address = s.recvfrom(16)
 
-        x, y, z, theta, robotid = unpack('fffI', data)
+        x, y, theta, robotid = unpack('fffI', data)
 
-        print(address[0], robotid, x, y, z, theta)
+        print(address[0], robotid, x, y,theta)
 
     s.close()
 

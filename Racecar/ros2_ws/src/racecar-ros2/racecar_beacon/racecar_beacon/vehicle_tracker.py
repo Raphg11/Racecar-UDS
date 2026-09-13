@@ -19,7 +19,7 @@ def main():
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
     # Adresse IP du Racecar, port de broadcast
-    s.bind(('10.0.1.21',5001))
+    s.bind(('',5001))
 
     while True:
         data, address = s.recvfrom(16)

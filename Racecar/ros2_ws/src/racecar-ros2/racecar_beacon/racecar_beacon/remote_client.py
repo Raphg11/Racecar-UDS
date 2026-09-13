@@ -14,7 +14,7 @@ NOTES:
 def main():
     # TODO: Implement the RemoteRequest client here.
     server_ip = "10.0.1.21"
-    server_port = 5000
+    server_port =65432
 
 
     sock=socket.socket(socket.AF_INET, socket.SOCK_STREAM)

@@ -38,13 +38,11 @@ class ROSMonitor(Node):
 
         
         #----------------- Raph (goat) ----------------------#
-        # Abonnement à l'odométrie (ton code du labo)
+        # Abonnement à l'odométrie et Lidar (code du labo)
         self.subscribe_Odometry = self.create_subscription(Odometry, "/odometry/filtered", self.odometry_callback, 1)
-
-        # Abonnement au LiDAR pour les obstacles
         self.subscribe_Lidar = self.create_subscription(LaserScan, "/scan", self.scan_callback, 1)
 
-        # Timer pour le service PositionBroadcast (1 Hz)
+        # Timer pour le service PositionBroadcast (1Hz)
         self.broadcast_timer = self.create_timer(1.0, self.position_broadcast_callback)
         self.remote_request_t.start()
 
@@ -88,11 +86,10 @@ class ROSMonitor(Node):
                     else:
                         reponse = pack("16x")
                         
-                    # 6. Envoi de la réponse encodée au client
                     connexion.sendall(reponse)
                     
             except socket.timeout:
-                # C'est attendu, on continue simplement la boucle
+                
                 pass
             except Exception as e:
                 self.get_logger().error(f"Erreur de connexion TCP : {e}")
@@ -111,7 +108,7 @@ class ROSMonitor(Node):
            orientation = msg.pose.pose.orientation
            theta = yaw_from_quaternion(orientation)
            
-           # Affichage à l'écran demandé par l'exercice
+           
            print(f"Position -> X: {x:.3f}, Y: {y:.3f}, Theta: {theta:.3f}")
            self.position = (x,y,theta)
 

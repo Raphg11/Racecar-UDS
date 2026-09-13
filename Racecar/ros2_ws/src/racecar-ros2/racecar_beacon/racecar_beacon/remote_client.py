@@ -29,13 +29,13 @@ def main():
     data=sock.recv(16)
     print(f"data : {data}")
     if command=="RPOS":
-        x,y,theta,_=unpack("!fffI",data)
+        x,y,theta=unpack("fff4x",data)
         print(f"X: {x}, Y: {y}, theta: {theta}")
     elif command=="OBSF":
-        obstacle,_,_,_=unpack("!IIII",data)
+        obstacle=unpack("I12x",data)
         print(bool(obstacle))
     elif command=="RBID":
-        id,_,_,_=unpack("!IIII",data)
+        id=unpack("I12x",data)[0]
         print(id)
 
     

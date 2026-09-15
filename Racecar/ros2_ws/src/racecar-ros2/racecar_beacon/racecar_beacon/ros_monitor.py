@@ -24,11 +24,11 @@ class ROSMonitor(Node):
         self.obstacle_detected = bool(False)
 
         # Socket parameters
-        self.host = self.declare_parameter("host", "127.0.0.1").value
+        self.host = self.declare_parameter("host", "0.0.0.0").value
         self.remote_request_port = self.declare_parameter(
             "remote_request_port", 65432
         ).value
-        self.broadcast = self.declare_parameter("broadcast", "127.0.0.255").value
+        self.broadcast = self.declare_parameter("broadcast", "10.0.1.255").value
         self.position_broad_port = self.declare_parameter(
             "pos_broadcast_port", 65431
         ).value
@@ -37,7 +37,6 @@ class ROSMonitor(Node):
 
 
         
-        #----------------- Raph (goat) ----------------------#
         # Abonnement à l'odométrie et Lidar (code du labo)
         self.subscribe_Odometry = self.create_subscription(Odometry, "/odometry/filtered", self.odometry_callback, 1)
         self.subscribe_Lidar = self.create_subscription(LaserScan, "/scan", self.scan_callback, 1)

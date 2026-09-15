@@ -8,6 +8,7 @@ from nav_msgs.msg import Odometry
 from sensor_msgs.msg import LaserScan
 
 import socket
+import time
 import threading
 from struct import pack
 
@@ -37,7 +38,7 @@ class ROSMonitor(Node):
 
 
         
-        # Abonnement à l'odométrie et Lidar (code du labo)
+        # Abonnement à l'odométrie et Lidar (code inspiré du labo)
         self.subscribe_Odometry = self.create_subscription(Odometry, "racecar/odom/filtered", self.odometry_callback, 1)
         self.subscribe_Lidar = self.create_subscription(LaserScan, "racecar/scan", self.scan_callback, 1)
 
@@ -97,11 +98,11 @@ class ROSMonitor(Node):
 
 
     def shutdown(self):
-        """Gracefully shutdown the threads BEFORE terminating the node."""
+        """Gracefully shutdown the thmsgreads BEFORE terminating the node."""
         self.remote_request_t.join()
 
 
-    def odometry_callback(self, msg: Odometry) -> None:
+    def odometry_callback(self, msg: Odometry):
            x = msg.pose.pose.position.x
            y = msg.pose.pose.position.y
            orientation = msg.pose.pose.orientation
@@ -111,7 +112,7 @@ class ROSMonitor(Node):
            print(f"Position -> X: {x:.3f}, Y: {y:.3f}, Theta: {theta:.3f}")
            self.position = (x,y,theta)
 
-    def scan_callback(self, msg: LaserScan) -> None:
+    def scan_callback(self, msg: LaserScan):
         #un obstacle à moins de 1 mètre
         self.obstacle_detected = False
         for distance in msg.ranges:
@@ -124,18 +125,18 @@ class ROSMonitor(Node):
         """Envoie la position et l'ID du robot en UDP broadcast toutes les secondes."""
         try:
             
-            socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             
-            socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
             
             payload = pack("fffI", self.position[0], self.position[1], self.position[2], self.id)
             
-            socket.sendto(payload, (self.broadcast, self.position_broad_port))
-            socket.close()
+            s.sendto(payload, (self.broadcast, self.position_broad_port))
+            s.close()
             
         except Exception as e:
             self.get_logger().error(f"Erreur lors du broadcast UDP : {e}")
-        
+
 
 
 def main(args=None):

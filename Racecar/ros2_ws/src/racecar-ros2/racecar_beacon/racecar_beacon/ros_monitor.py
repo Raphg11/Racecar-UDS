@@ -38,8 +38,8 @@ class ROSMonitor(Node):
 
         
         # Abonnement à l'odométrie et Lidar (code du labo)
-        self.subscribe_Odometry = self.create_subscription(Odometry, "/odometry/filtered", self.odometry_callback, 1)
-        self.subscribe_Lidar = self.create_subscription(LaserScan, "/scan", self.scan_callback, 1)
+        self.subscribe_Odometry = self.create_subscription(Odometry, "racecar/odom/filtered", self.odometry_callback, 1)
+        self.subscribe_Lidar = self.create_subscription(LaserScan, "racecar/scan", self.scan_callback, 1)
 
         # Timer pour le service PositionBroadcast (1Hz)
         self.broadcast_timer = self.create_timer(1.0, self.position_broadcast_callback)

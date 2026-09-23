@@ -318,6 +318,8 @@ const unsigned long baud_rate = 115200;
 ///////////////////////////////////////////////////////////////////
 // Controller One tick
 ///////////////////////////////////////////////////////////////////
+
+// A faire APP2 !!!!!!!!!!!!!!!!
 void ctl(float dt_ctl_ms) // [ms] measured control delta since the last tick
 {
     ///////////////////////////////////////////////
@@ -425,6 +427,17 @@ void ctl(float dt_ctl_ms) // [ms] measured control delta since the last tick
         dri_pwm = pwm_zer_dri;
     }
     ////////////////////////////////////////////////////////
+    // laboratoire 1
+    else if (ctl_mode == 8)
+    {
+        
+        dri_pwm = cmd2pwm(2.0);  // 2 V
+    }
+    
+    else if (ctl_mode == 9)
+    {
+        dri_pwm = cmd2pwm(4.0);  // 4 V
+    }
     else
     {
         // reset integral actions

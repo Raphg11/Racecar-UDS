@@ -126,12 +126,21 @@ class Teleop(Node):
             #     self.cmd_msg.angular.z = 0.0
             #     self.cmd_msg.linear.z  = 7.0 # Control mode
 
-            # If bottom arrow is active
-            # elif(joy_msg.axes[7]):
-            #     # Template for a custom mode
-            #     self.cmd_msg.linear.x  = 0.0
-            #     self.cmd_msg.angular.z = 0.0
-            #     self.cmd_msg.linear.z  = 8.0 # Control mode
+            # If bottom let-right arrow is active
+            elif(joy_msg.axes[4]):
+                # Template for a custom mode
+                self.cmd_msg.linear.x  = 2.0
+                self.cmd_msg.angular.z = 0.0
+                self.cmd_msg.linear.z  = 8.0 # Control mode
+
+            # If top - bottom arrow is active
+            elif(joy_msg.axes[5]):
+                # Template for a custom mode
+                self.cmd_msg.linear.x  = 4.0
+                self.cmd_msg.angular.z = 0.0
+                self.cmd_msg.linear.z  = 9.0 # Control mode
+
+
 
             # Defaults operation
             # No active button

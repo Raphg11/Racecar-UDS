@@ -131,14 +131,14 @@ class Teleop(Node):
                 # Template for a custom mode
                 self.cmd_msg.linear.x  = 2.0
                 self.cmd_msg.angular.z = 0.0
-                self.cmd_msg.linear.z  = 8.0 # Control mode
+                self.cmd_msg.linear.z  = 1.0 # Control mode
 
             # If top - bottom arrow is active
             elif(joy_msg.axes[5]):
                 # Template for a custom mode
                 self.cmd_msg.linear.x  = 4.0
                 self.cmd_msg.angular.z = 0.0
-                self.cmd_msg.linear.z  = 9.0 # Control mode
+                self.cmd_msg.linear.z  = 1.0 # Control mode
 
 
 

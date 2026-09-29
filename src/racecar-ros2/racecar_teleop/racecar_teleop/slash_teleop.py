@@ -67,14 +67,14 @@ class Teleop(Node):
                 self.cmd_msg.angular.z = steering_user_input * self.cmd2rad
                 self.cmd_msg.linear.z = 1.0  # CtrlChoice
 
-            elif joy_msg.buttons[10]:  # L3 (mode D)
-                """
-                GRO501-1: closed-loop velocity fixed @ X m/s, open-loop
-                steering, where X is determined "on-site".
-                """
-                self.cmd_msg.linear.x = 2.0  # m/s
-                self.cmd_msg.angular.z = steering_user_input * self.cmd2rad
-                self.cmd_msg.linear.z = 0.0  # high-level mode
+            #elif joy_msg.buttons[10]:  # L3 (mode D)
+            #    """
+            #    GRO501-1: closed-loop velocity fixed @ X m/s, open-loop
+            #    steering, where X is determined "on-site".
+            #    """
+            #    self.cmd_msg.linear.x = 2.0  # m/s
+            #    self.cmd_msg.angular.z = steering_user_input * self.cmd2rad
+            #    self.cmd_msg.linear.z = 0.0  # high-level mode
 
             # If right trigger is active
             elif joy_msg.buttons[7]:  # RT (mode D)
@@ -108,23 +108,36 @@ class Teleop(Node):
                 self.cmd_msg.linear.z = 3.0  # Control mode
 
             # If button y is active
-            elif joy_msg.buttons[3]:
-                # Reset Encoder
-                self.cmd_msg.linear.x = 0.0
-                self.cmd_msg.angular.z = 0.0
-                self.cmd_msg.linear.z = 6.0  # Control mode
+            #elif joy_msg.buttons[3]:
+            #    # Reset Encoder
+            #    self.cmd_msg.linear.x = 0.0
+            #    self.cmd_msg.angular.z = 0.0
+            #    self.cmd_msg.linear.z = 6.0  # Control mode
 
             # If left trigger is active
             elif joy_msg.buttons[6]:
                 # No ctl_ref msg published!
                 return
 
+            # If left joy pushed
+            elif(joy_msg.buttons[10]):
+                # Template for a custom mode
+                self.cmd_msg.linear.x  = 4.2
+                self.cmd_msg.angular.z = 0.0
+                self.cmd_msg.linear.z  = 1.0 # Control mode
+            
+            elif(joy_msg.buttons[11]):
+                # Template for a custom mode
+                self.cmd_msg.linear.x  = 8.0
+                self.cmd_msg.angular.z = 0.0
+                self.cmd_msg.linear.z  = 1.0 # Control mode
+
             # If right joy pushed
-            # elif(joy_msg.buttons[11]):
-            #      # Template for a custom mode
-            #     self.cmd_msg.linear.x  = 0.0
-            #     self.cmd_msg.angular.z = 0.0
-            #     self.cmd_msg.linear.z  = 7.0 # Control mode
+            #elif(joy_msg.buttons[10]):
+            #    # Template for a custom mode
+            #    self.cmd_msg.linear.x  = 6.0
+            #    self.cmd_msg.angular.z = 0.0
+            #    self.cmd_msg.linear.z  = 1.0 # Control mode
 
             # If bottom left-right arrow is active
             elif(joy_msg.axes[4]):

@@ -344,8 +344,9 @@ void ctl(float dt_ctl_ms) // [ms] measured control delta since the last tick
 
     // TODO: VOUS DEVEZ COMPLETEZ LA DERIVEE FILTRE ICI
     float vel_raw = (enc_now - enc_old) * tick2m / dt_ctl_ms * 1000.0f;
-    float alpha   = 0;       // TODO
-    float vel_fil = vel_raw; // Filter TODO
+    float dt = dt_ctl_ms * 0.001f;
+    float alpha   = filter_rc / (filter_rc + dt);       // TODO
+    float vel_fil = alpha * vel_old + (1.0f - alpha) * vel_raw; // Filter TODO
 
     // Propulsion Controllers
 
@@ -381,11 +382,24 @@ void ctl(float dt_ctl_ms) // [ms] measured control delta since the last tick
 
         // TODO: VOUS DEVEZ COMPLETEZ LE CONTROLLEUR SUIVANT
         vel_ref       = dri_ref;
+
         vel_error     = vel_ref - vel_fil;
-        vel_error_int = 0;                  // TODO
-        dri_cmd       = vel_kp * vel_error; // proportionnal only
+
+        // intégrale
+        vel_error_int += vel_error * dt;
+
+        // Saturation
+        if (vel_error_int > 1000.0f) vel_error_int = 1000.0f;
+        if (vel_error_int < -1000.0f) vel_error_int = -1000.0f;
+
+        // Dérivée
+        float vel_error_ddt = (vel_fil - vel_old) / dt;
+
+        dri_cmd = vel_kp * vel_error + vel_ki * vel_error_int - vel_kd * vel_error_ddt; 
 
         dri_pwm = cmd2pwm(dri_cmd);
+
+        vel_old = vel_fil;
     }
     ///////////////////////////////////////////////////////
     else if (ctl_mode == 3)
@@ -397,19 +411,23 @@ void ctl(float dt_ctl_ms) // [ms] measured control delta since the last tick
 
         // TODO: VOUS DEVEZ COMPLETEZ LE CONTROLLEUR SUIVANT
         pos_ref       = dri_ref;
-        pos_error     = 0; // TODO
-        pos_error_ddt = 0; // TODO
-        pos_error_int = 0; // TODO
 
-        // Anti wind-up
-        if (pos_error_int > pos_ei_sat)
-        {
-            pos_error_int = pos_ei_sat;
-        }
+        pos_error     = pos_ref - pos_now; // TODO
 
-        dri_cmd = 0; // TODO
+        pos_error_int += pos_error * dt; // TODO
+        
+        //Anti-windup saturation
+        if (pos_error_int > pos_ei_sat) pos_error_int = pos_ei_sat;
+        if (pos_error_int < -pos_ei_sat) pos_error_int = -pos_ei_sat;
+
+        pos_error_ddt = (pos_now - pos_old) / dt; // TODO
+
+
+        dri_cmd = pos_kp * pos_error + pos_ki * pos_error_int - pos_kd * pos_error_ddt; // TODO
 
         dri_pwm = cmd2pwm(dri_cmd);
+
+        pos_old = pos_now;
     }
     ///////////////////////////////////////////////////////
     else if (ctl_mode == 4)

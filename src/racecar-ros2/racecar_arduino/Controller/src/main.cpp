@@ -404,30 +404,33 @@ void ctl(float dt_ctl_ms) // [ms] measured control delta since the last tick
     ///////////////////////////////////////////////////////
     else if (ctl_mode == 3)
     {
-        // Low-level Position control
-        // Commands received in [m] setpoints
+        // Gains PID (issus des constantes globales ou définis ici)
+        float Kp = pos_kp;
+        float Kd = pos_kd;
+        float Ki = pos_ki;
 
-        float pos_ref, pos_error, pos_error_ddt;
+        // Erreur : consigne (r = dri_ref) - mesure (y = pos_now)
+        float e = dri_ref - pos_now;
 
-        // TODO: VOUS DEVEZ COMPLETEZ LE CONTROLLEUR SUIVANT
-        pos_ref       = dri_ref;
+        // Terme proportionnel
+        float up = Kp * e;
 
-        pos_error     = pos_ref - pos_now; // TODO
+        // Dérivée de l'erreur : 0 - y_prime (où y_prime est la vitesse filtrée vel_fil)
+        float e_prime = 0.0f - vel_fil;
+        float ud = Kd * e_prime;
 
-        pos_error_int += pos_error * dt; // TODO
-        
-        //Anti-windup saturation
+        // Terme intégral (on accumule dans la mémoire globale pos_error_int)
+        pos_error_int += e * dt;
         if (pos_error_int > pos_ei_sat) pos_error_int = pos_ei_sat;
         if (pos_error_int < -pos_ei_sat) pos_error_int = -pos_ei_sat;
+        float ui = Ki * pos_error_int;
 
-        pos_error_ddt = (pos_now - pos_old) / dt; // TODO
+        // Commande totale
+        float u = up + ui + ud;
 
-
-        dri_cmd = pos_kp * pos_error + pos_ki * pos_error_int - pos_kd * pos_error_ddt; // TODO
-
+        // Application de la commande
+        dri_cmd = u;
         dri_pwm = cmd2pwm(dri_cmd);
-
-        pos_old = pos_now;
     }
     ///////////////////////////////////////////////////////
     else if (ctl_mode == 4)

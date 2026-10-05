@@ -55,8 +55,8 @@ const float filter_rc  = 0.1;
 const float vel_kp     = 10.0;
 const float vel_ki     = 0.0;
 const float vel_kd     = 0.0;
-const float pos_kp     = 1.0;
-const float pos_kd     = 0.0;
+const float pos_kp     = 8.0;
+const float pos_kd     = 30.0;
 const float pos_ki     = 0.0;
 const float pos_ei_sat = 10000.0;
 
@@ -105,6 +105,9 @@ signed long enc_old = 0;
 float pos_now = 0;
 float vel_now = 0;
 float vel_old = 0;
+
+// belm2371 a modifié
+float pos_old = 0;
 
 float vel_error_int = 0;
 float pos_error_int = 0;

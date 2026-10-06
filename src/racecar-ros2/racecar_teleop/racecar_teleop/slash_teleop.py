@@ -128,7 +128,7 @@ class Teleop(Node):
             
             elif(joy_msg.buttons[11]):
                 # Template for a custom mode
-                self.cmd_msg.linear.x  = 7.0
+                self.cmd_msg.linear.x  = 5.4
                 self.cmd_msg.angular.z = 0.0
                 self.cmd_msg.linear.z  = 1.0 # Control mode
 

@@ -122,13 +122,13 @@ class Teleop(Node):
             # If left joy pushed
             elif(joy_msg.buttons[10]):
                 # Template for a custom mode
-                self.cmd_msg.linear.x  = 4.2
+                self.cmd_msg.linear.x  = 5.0
                 self.cmd_msg.angular.z = 0.0
                 self.cmd_msg.linear.z  = 1.0 # Control mode
             
             elif(joy_msg.buttons[11]):
                 # Template for a custom mode
-                self.cmd_msg.linear.x  = 8.0
+                self.cmd_msg.linear.x  = 7.0
                 self.cmd_msg.angular.z = 0.0
                 self.cmd_msg.linear.z  = 1.0 # Control mode
 

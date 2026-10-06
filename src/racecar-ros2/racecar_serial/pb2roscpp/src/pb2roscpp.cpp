@@ -20,7 +20,7 @@
 #define MAX_NUMBERS 19
 using std::placeholders::_1;
 
-std::string port = "/dev/ttyACM0";
+std::string port = "/dev/ttyUSB1";
 long int baud = 115200;
 
 class ArduinoCommunicationNode : public rclcpp::Node

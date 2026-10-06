@@ -67,14 +67,14 @@ class Teleop(Node):
                 self.cmd_msg.angular.z = steering_user_input * self.cmd2rad
                 self.cmd_msg.linear.z = 1.0  # CtrlChoice
 
-            #elif joy_msg.buttons[10]:  # L3 (mode D)
-            #    """
-            #    GRO501-1: closed-loop velocity fixed @ X m/s, open-loop
-            #    steering, where X is determined "on-site".
-            #    """
-            #    self.cmd_msg.linear.x = 2.0  # m/s
-            #    self.cmd_msg.angular.z = steering_user_input * self.cmd2rad
-            #    self.cmd_msg.linear.z = 0.0  # high-level mode
+            elif joy_msg.buttons[3]:  # L3 (mode D)
+                """
+                GRO501-1: closed-loop velocity fixed @ X m/s, open-loop
+                steering, where X is determined "on-site".
+                """
+                self.cmd_msg.linear.x = 2.0  # m/s
+                self.cmd_msg.angular.z = steering_user_input * self.cmd2rad
+                self.cmd_msg.linear.z = 0.0  # high-level mode
 
             # If right trigger is active
             elif joy_msg.buttons[7]:  # RT (mode D)

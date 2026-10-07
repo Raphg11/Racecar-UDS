@@ -400,38 +400,27 @@ void ctl(float dt_ctl_ms) // [ms] measured control delta since the last tick
         // Dérivée
         float vel_error_ddt = (vel_fil - vel_old) / dt;
 
-        // =====================================================
-        // PI vitesse
-        // =====================================================
+    // PI vitesse
 
-        float vel_cmd_raw =
-            vel_kp * vel_error
-            + vel_ki * vel_error_int
-            - vel_kd * vel_error_ddt;
+    float vel_cmd_raw =
+        vel_kp * vel_error
+        + vel_ki * vel_error_int
+        - vel_kd * vel_error_ddt;
 
+    float tau_f = 1.0f / vel_filter_omega;
 
-        // =====================================================
-        // Filtre passe-bas du premier ordre
-        //
-        // F(s) = omega_f / (s + omega_f)
-        //
-        // tau_f = 1 / omega_f
-        // =====================================================
+    // Discrétisation avec le vrai dt mesuré
+    float alpha_cmd = tau_f / (tau_f + dt);
 
-        float tau_f = 1.0f / vel_filter_omega;
-
-        // Discrétisation avec le vrai dt mesuré
-        float alpha_cmd = tau_f / (tau_f + dt);
-
-        vel_cmd_filtered =
-            alpha_cmd * vel_cmd_filtered
-            + (1.0f - alpha_cmd) * vel_cmd_raw;
+    vel_cmd_filtered =
+        alpha_cmd * vel_cmd_filtered
+        + (1.0f - alpha_cmd) * vel_cmd_raw;
 
 
-        // Commande envoyée au moteur
-        dri_cmd = vel_cmd_filtered;
+    // Commande envoyée au moteur
+    dri_cmd = vel_cmd_filtered;
 
-        dri_pwm = cmd2pwm(dri_cmd);
+    dri_pwm = cmd2pwm(dri_cmd);
         vel_old = vel_fil;
     }
     ///////////////////////////////////////////////////////

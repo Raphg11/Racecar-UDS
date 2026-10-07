@@ -57,7 +57,7 @@ const float vel_ki     = 0.0;
 const float vel_kd     = 0.0;
 const float pos_kp     = 23.84;
 const float pos_kd     = 19.0;
-const float pos_ki     = 0.0;
+const float pos_ki     = 1.0;
 const float pos_ei_sat = 10000.0;
 
 // Comparison targets [us]

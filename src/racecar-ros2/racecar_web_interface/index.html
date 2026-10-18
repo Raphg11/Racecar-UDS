@@ -26,21 +26,56 @@
     <div class="collapse" id="navbarToggleExternalContent">
         <div class="bg-dark p-4">
             <h6 class="text-white h4">Configuration</h6>
+            <label class="text-white">ROS master IP:</label>
+            <input type="text" id="rosMasterIp" class="form-control mb-2" value="127.0.0.1">
+            <button id="btnConnect" class="btn btn-secondary">Connectez!</button>
         </div>
     </div>
 
     <nav class="navbar navbar-dark bg-dark">
         <div>
-            <button class="navbar-toggler" type="button" data-toggle="collapse"
-                data-target="#navbarToggleExternalContent">
-                <span class="navbar-toggler-icon"></span>
-            </button>
+            <div class="row">
+                <button class="navbar-toggler" type="button" data-toggle="collapse"
+                    data-target="#navbarToggleExternalContent">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <h6 class="text-white h4"> Racecar</h6>
+            </div>
         </div>
     </nav>
     <!-- Menu END-->
 
     <!-- Main layout BEGIN-->
     <div class="container-fluid">
+        <div class="row">
+            <div class="col-12 col-md-4">
+                <h2 class="text-black h12">Statut</h2>
+                <textarea id="boiteStatut" class="form-control mb-2" rows="5" readonly></textarea>
+
+                <button id="btnEffacer"class="btn btn-dark">Effacer</button>
+
+                <h2 class="text-black h12">Controle</h2>
+                <div class="row">
+                    <button id="btnAvancez" class="btn btn-dark">Avancez</button>
+                    <button id="btnArretez"class="btn btn-dark">Arreter</button>
+
+                </div>
+            </div>
+
+            <div class="col-12 col-md-8">
+
+                <h2 class="text-black h12">Camera</h2>
+
+                <img id="fluxCamera" src="http://127.0.0.1:8080/stream?topic=/racecar/camera/image_raw" class="img-fluid border w-100" alt="Flux Caméra">
+            </div>
+
+            
+
+        </div>
+
+        
+
+
     </div>
     <!-- Main layout END-->
 

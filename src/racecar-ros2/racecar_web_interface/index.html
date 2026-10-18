@@ -18,7 +18,7 @@
     <script src="js/virtualjoystick.js"></script>
     <script src="js/roslib.min.js"></script> <!-- rosbridge -->
 
-    <title>GRO525 | Laboratoire</title>
+    <title>GRO525 | Page du Racecar</title>
 </head>
 
 <body>
@@ -27,8 +27,8 @@
         <div class="bg-dark p-4">
             <h6 class="text-white h4">Configuration</h6>
             <label class="text-white">ROS master IP:</label>
-            <input type="text" id="rosMasterIp" class="form-control mb-2" value="127.0.0.1">
-            <button id="btnConnect" class="btn btn-secondary">Connectez!</button>
+            <input type="text" id="rosMasterIp" class="form-control mb-2">
+            <button id="btnConnect" class="btn btn-secondary">Connecter!</button>
         </div>
     </div>
 
@@ -39,7 +39,10 @@
                     data-target="#navbarToggleExternalContent">
                     <span class="navbar-toggler-icon"></span>
                 </button>
-                <h6 class="text-white h4"> Racecar</h6>
+                <div class="text-white h3">
+
+                    Utilisateur : <span id="utilisateurracecar">Utilisateur</span>
+                </div>
             </div>
         </div>
     </nav>
@@ -56,7 +59,7 @@
 
                 <h2 class="text-black h12">Controle</h2>
                 <div class="row">
-                    <button id="btnAvancez" class="btn btn-dark">Avancez</button>
+                    <button id="btnAvancez" class="btn btn-dark">Avancer</button>
                     <button id="btnArretez"class="btn btn-dark">Arreter</button>
 
                 </div>

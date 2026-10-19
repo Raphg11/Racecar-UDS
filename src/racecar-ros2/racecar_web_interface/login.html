@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="fr-CA">
+ 
+<head>
+    <!-- Required meta tags -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+ 
+    <!-- CSS -->
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/dashboard.css">
+ 
+    <!-- JavaScript - Import Dependencies -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="js/jquery-3.3.1.slim.min.js"></script>
+    <script src="js/popper.min.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+    <script src="js/virtualjoystick.js"></script>
+    <script src="js/roslib.min.js"></script> <!-- rosbridge -->
+ 
+    <title>GRO525 | Page de connexion</title>
+</head>
+ 
+<body>
+    <!-- Menu BEGIN-->
+   
+ 
+    <!-- Menu END-->
+ 
+    <!-- Main layout BEGIN-->
+ 
+    <div class="container mt-4">
+        <div class="row">
+        <div class="col-12 col-md-5">
+             <label class="text-black d-block h4">Adresse IP du Racecar : </label>
+            <label class="text-black d-block h4">Nom d'utilisateur de l'équipe Racecar : </label>
+            <label class="text-black d-block h4">Mot de passe : </label>
+        </div>
+        <div class="col-12 col-md-5 ">
+            <input type="text" id="IpAdress" class="form-control mb-2" >
+            <input type="text" id="Username" class="form-control mb-2" >
+            <input type="password" id="Password" class="form-control mb-2" >
+ 
+        </div>
+ 
+     </div>
+     
+     <button class="btn btn-secondary" id="btnconnection"> Connexion </button>
+     <div class="text-black h5">
+        État de la connexion : <span id="connectionstate"> Non connecté </span>
+ 
+     </div>
+ 
+    </div>
+ 
+    </div>
+     
+    <!-- Main layout END-->
+ 
+    <!-- vvv Use this file for your scripts vvv-->
+    <script type="text/javascript" src="login.js"></script>
+</body>
+ 
+</html>

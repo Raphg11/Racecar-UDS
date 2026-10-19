@@ -38,3 +38,84 @@ setInterval(() => {
         velocityCmdTopic.publish(twist);
     }
 }, 200);
+
+// belm2371
+function sendAvancez() {
+    var twist = new ROSLIB.Message(
+        {linear : {x : 0.5, y : 0.0, z : 0.0}, angular : {x : 0.0, y : 0.0, z : 0.0}});
+    
+    velocityCmdTopic.publish(twist);
+
+    document.getElementById("textStatus").value += "Avancez\n";
+    
+}
+
+function sendArretez() {
+    var twist = new ROSLIB.Message(
+        {linear : {x : 0.0, y : 0.0, z : 0.0}, angular : {x : 0.0, y : 0.0, z : 0.0}});
+    
+    velocityCmdTopic.publish(twist);
+
+    document.getElementById("textStatus").value += "Arrêtez\n";
+    
+}
+
+
+// =========================
+// Boutons
+// =========================
+
+    // Bouton Avance
+    document.getElementById("btnAvancez").onclick = function () {
+        //sendAvancez();
+        document.getElementById("textStatus").value += "Avancez\n";
+    };
+
+    // Bouton Arrête
+    document.getElementById("btnArretez").onclick = function () {
+        //sendArretez();
+        document.getElementById("textStatus").value += "Arrêtez\n";
+    };
+
+    // Bouton Effacez
+    document.getElementById("btnClearHistory").onclick = function () {
+        document.getElementById("textStatus").value = "";
+    };
+
+// Bouton Connectez!
+const btnConnect = document.getElementById("btnConnect");
+const textStatus = document.getElementById("textStatus");
+
+if (btnConnect) {
+    btnConnect.addEventListener("click", () => {
+
+        // Lire l'IP entrée par l'utilisateur
+        rosMasterIp = document.getElementById("ipInput").value.trim();
+
+        if (rosMasterIp === "") {
+            textStatus.value = "Erreur : aucune adresse IP fournie.\n";
+            return;
+        }
+
+        // Fermer une ancienne connexion si elle existe
+        if (rosbridgeServer !== null) {
+            rosbridgeServer.close();
+        }
+
+        // Appeler TA fonction de connexion ROS
+        connectROS();
+
+        // Ajouter les handlers pour afficher le statut dans le textarea
+        rosbridgeServer.on("connection", () => {
+            textStatus.value += "Connecté au Racecar!\n";
+        });
+
+        rosbridgeServer.on("error", () => {
+            textStatus.value += "Erreur de connexion avec le Racecar!\n";
+        });
+
+        rosbridgeServer.on("close", () => {
+            textStatus.value += "Connexion fermée.\n";
+        });
+    });
+}

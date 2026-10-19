@@ -26,6 +26,11 @@
     <div class="collapse" id="navbarToggleExternalContent">
         <div class="bg-dark p-4">
             <h6 class="text-white h4">Configuration</h6>
+
+            <label class="text-white">ROS master IP:</label>
+            <input id="ipInput" type="text" class="form-control mb-3" placeholder="10.42.0.1">
+
+            <button id="btnConnect" class="btn btn-light">Connectez!</button>
         </div>
     </div>
 
@@ -34,13 +39,54 @@
             <button class="navbar-toggler" type="button" data-toggle="collapse"
                 data-target="#navbarToggleExternalContent">
                 <span class="navbar-toggler-icon"></span>
+
             </button>
+
+            <span class="h4 text-white">Racecar</span>
         </div>
     </nav>
     <!-- Menu END-->
 
     <!-- Main layout BEGIN-->
-    <div class="container-fluid">
+    <div class="container-fluid mt-3">
+    <div class="row">
+
+        <!-- ======== COLONNE GAUCHE (Statut + Contrôle) ======== -->
+        <div class="col-12 col-lg-4">
+
+            <!-- Statut -->
+            <div class="card mb-3">
+                <div class="card-header">Statut</div>
+                <div class="card-body">
+                    <textarea id="textStatus" class="form-control" rows="8"></textarea>
+                    <button id="btnClearHistory" class="btn-racecar mt-3">Effacez</button>
+                </div>
+            </div>
+
+            <!-- Contrôle -->
+            <div class="card mb-3">
+                <div class="card-header">Contrôle</div>
+                <div class="card-body">
+                    <button id="btnAvancez" class="btn-racecar mb-3">Avancez</button>
+                    <button id="btnArretez" class="btn-racecar mb-3">Arrêtez</button>
+                </div>
+            </div>
+
+        </div>
+
+            <!-- ======== COLONNE DROITE (Caméra) ======== -->
+            <div class="col-12 col-lg-8">
+
+                <div class="card mb-3">
+                    <div class="card-header">Caméra</div>
+                    <div class="card-body text-center">
+                        <img id="cameraFeed" class="img-fluid" alt="Flux video du racecar">
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
     </div>
     <!-- Main layout END-->
 

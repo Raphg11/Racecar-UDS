@@ -67,12 +67,12 @@ class Teleop(Node):
                 self.cmd_msg.angular.z = steering_user_input * self.cmd2rad
                 self.cmd_msg.linear.z = 1.0  # CtrlChoice
 
-            elif joy_msg.buttons[3]:  # L3 (mode D)
+            elif joy_msg.buttons[10]:  # L3 (mode D)
                 """
                 GRO501-1: closed-loop velocity fixed @ X m/s, open-loop
                 steering, where X is determined "on-site".
                 """
-                self.cmd_msg.linear.x = 1.5  # m/s
+                self.cmd_msg.linear.x = 2.0  # m/s
                 self.cmd_msg.angular.z = steering_user_input * self.cmd2rad
                 self.cmd_msg.linear.z = 0.0  # high-level mode
 
@@ -82,7 +82,7 @@ class Teleop(Node):
                 GRO501-1: closed-loop position fixed @ X m, open-loop
                 steering, where X is determined "on-site".
                 """
-                self.cmd_msg.linear.x = 3.0  # [m]
+                self.cmd_msg.linear.x = 2.0  # [m]
                 self.cmd_msg.angular.z = steering_user_input * self.cmd2rad
                 self.cmd_msg.linear.z = 2.0  # CtrlChoice
 
@@ -94,11 +94,11 @@ class Teleop(Node):
                 self.cmd_msg.linear.z = 3.0  # Control mode
 
             # If button B is active
-            #elif joy_msg.buttons[2]:
-            #    # Closed-loop position, Closed-loop steering
-            #    self.cmd_msg.linear.x = propulsion_user_input  # [m]
-            #    self.cmd_msg.angular.z = steering_user_input  # [m]
-            #    self.cmd_msg.linear.z = 4.0  # Control mode
+            elif joy_msg.buttons[2]:
+                # Closed-loop position, Closed-loop steering
+                self.cmd_msg.linear.x = propulsion_user_input  # [m]
+                self.cmd_msg.angular.z = steering_user_input  # [m]
+                self.cmd_msg.linear.z = 4.0  # Control mode
 
             # If button x is active
             elif joy_msg.buttons[0]:
@@ -108,7 +108,7 @@ class Teleop(Node):
                 self.cmd_msg.linear.z = 3.0  # Control mode
 
             # If button y is active
-            elif joy_msg.buttons[2]:
+            elif joy_msg.buttons[3]:
                 # Reset Encoder
                 self.cmd_msg.linear.x = 0.0
                 self.cmd_msg.angular.z = 0.0
@@ -119,41 +119,19 @@ class Teleop(Node):
                 # No ctl_ref msg published!
                 return
 
-            # If left joy pushed
-            elif(joy_msg.buttons[10]):
-                # Template for a custom mode
-                self.cmd_msg.linear.x  = 4.8
-                self.cmd_msg.angular.z = 0.0
-                self.cmd_msg.linear.z  = 1.0 # Control mode
-            
-            elif(joy_msg.buttons[11]):
-                # Template for a custom mode
-                self.cmd_msg.linear.x  = 5.4
-                self.cmd_msg.angular.z = 0.0
-                self.cmd_msg.linear.z  = 1.0 # Control mode
-
             # If right joy pushed
-            #elif(joy_msg.buttons[10]):
-            #    # Template for a custom mode
-            #    self.cmd_msg.linear.x  = 6.0
-            #    self.cmd_msg.angular.z = 0.0
-            #    self.cmd_msg.linear.z  = 1.0 # Control mode
+            # elif(joy_msg.buttons[11]):
+            #      # Template for a custom mode
+            #     self.cmd_msg.linear.x  = 0.0
+            #     self.cmd_msg.angular.z = 0.0
+            #     self.cmd_msg.linear.z  = 7.0 # Control mode
 
-            # If bottom left-right arrow is active
-            elif(joy_msg.axes[4]):
-                # Template for a custom mode
-                self.cmd_msg.linear.x  = 0.0
-                self.cmd_msg.angular.z = 0.0
-                self.cmd_msg.linear.z  = 0.0 # Control mode
-
-            # If top - bottom arrow is active
-            elif(joy_msg.axes[5]):
-                # Template for a custom mode
-                self.cmd_msg.linear.x  = 0.0
-                self.cmd_msg.angular.z = 0.0
-                self.cmd_msg.linear.z  = 0.0 # Control mode
-
-
+            # If bottom arrow is active
+            # elif(joy_msg.axes[7]):
+            #     # Template for a custom mode
+            #     self.cmd_msg.linear.x  = 0.0
+            #     self.cmd_msg.angular.z = 0.0
+            #     self.cmd_msg.linear.z  = 8.0 # Control mode
 
             # Defaults operation
             # No active button

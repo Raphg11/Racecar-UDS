@@ -13,21 +13,7 @@ NOTES:
 
 def main():
     # TODO: Implement the PositionBroadcast client here.
-
-    s = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
-
-    s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-
-    s.bind(('',65431))
-
-    while True:
-        data, address = s.recvfrom(16)
-
-        x, y, theta, robotid = unpack('fffI', data)
-
-        print(address[0], robotid, x, y,theta)
-
-    s.close()
+    pass
 
 
 if __name__ == "__main__":

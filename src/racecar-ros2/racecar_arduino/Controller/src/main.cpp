@@ -52,14 +52,13 @@ void sensorsCallback(unsigned long dt_com_us);
 
 // TODO: VOUS DEVEZ DETERMINEZ DES BONS PARAMETRES SUIVANTS
 const float filter_rc  = 0.1;
-const float vel_kp     = 12.74;
-const float vel_ki     = 22.0;
+const float vel_kp     = 10.0;
+const float vel_ki     = 0.0;
 const float vel_kd     = 0.0;
-const float pos_kp     = 23.84;
-const float pos_kd     = 19.0;
-const float pos_ki     = 1.0;
+const float pos_kp     = 1.0;
+const float pos_kd     = 0.0;
+const float pos_ki     = 0.0;
 const float pos_ei_sat = 10000.0;
-const float vel_filter_omega = 7.0f;
 
 // Comparison targets [us]
 const unsigned long period_ctl_us      = 2000;    // 500 Hz internal PID loop
@@ -107,12 +106,8 @@ float pos_now = 0;
 float vel_now = 0;
 float vel_old = 0;
 
-// belm2371 a modifié
-float pos_old = 0;
-
 float vel_error_int = 0;
 float pos_error_int = 0;
-float vel_cmd_filtered = 0.0f;
 
 // Loop timing
 // time_ = recorded micros() value, period_ = comparison target, dt_ = measured delta
@@ -323,8 +318,6 @@ const unsigned long baud_rate = 115200;
 ///////////////////////////////////////////////////////////////////
 // Controller One tick
 ///////////////////////////////////////////////////////////////////
-
-// A faire APP2 !!!!!!!!!!!!!!!!
 void ctl(float dt_ctl_ms) // [ms] measured control delta since the last tick
 {
     ///////////////////////////////////////////////
@@ -349,9 +342,8 @@ void ctl(float dt_ctl_ms) // [ms] measured control delta since the last tick
 
     // TODO: VOUS DEVEZ COMPLETEZ LA DERIVEE FILTRE ICI
     float vel_raw = (enc_now - enc_old) * tick2m / dt_ctl_ms * 1000.0f;
-    float dt = dt_ctl_ms * 0.001f;
-    float alpha   = filter_rc / (filter_rc + dt);       // TODO
-    float vel_fil = alpha * vel_old + (1.0f - alpha) * vel_raw; // Filter TODO
+    float alpha   = 0;       // TODO
+    float vel_fil = vel_raw; // Filter TODO
 
     // Propulsion Controllers
 
@@ -387,52 +379,11 @@ void ctl(float dt_ctl_ms) // [ms] measured control delta since the last tick
 
         // TODO: VOUS DEVEZ COMPLETEZ LE CONTROLLEUR SUIVANT
         vel_ref       = dri_ref;
-
         vel_error     = vel_ref - vel_fil;
-
-        // intégrale
-        vel_error_int += vel_error * dt;
-
-        // Saturation
-        if (vel_error_int > 1000.0f) vel_error_int = 1000.0f;
-        if (vel_error_int < -1000.0f) vel_error_int = -1000.0f;
-
-        // Dérivée
-        float vel_error_ddt = (vel_fil - vel_old) / dt;
-
-        // =====================================================
-        // PI vitesse
-        // =====================================================
-
-        float vel_cmd_raw =
-            vel_kp * vel_error
-            + vel_ki * vel_error_int
-            - vel_kd * vel_error_ddt;
-
-
-        // =====================================================
-        // Filtre passe-bas du premier ordre
-        //
-        // F(s) = omega_f / (s + omega_f)
-        //
-        // tau_f = 1 / omega_f
-        // =====================================================
-
-        float tau_f = 1.0f / vel_filter_omega;
-
-        // Discrétisation avec le vrai dt mesuré
-        float alpha_cmd = tau_f / (tau_f + dt);
-
-        vel_cmd_filtered =
-            alpha_cmd * vel_cmd_filtered
-            + (1.0f - alpha_cmd) * vel_cmd_raw;
-
-
-        // Commande envoyée au moteur
-        dri_cmd = vel_cmd_filtered;
+        vel_error_int = 0;                  // TODO
+        dri_cmd       = vel_kp * vel_error; // proportionnal only
 
         dri_pwm = cmd2pwm(dri_cmd);
-        vel_old = vel_fil;
     }
     ///////////////////////////////////////////////////////
     else if (ctl_mode == 3)
@@ -444,23 +395,19 @@ void ctl(float dt_ctl_ms) // [ms] measured control delta since the last tick
 
         // TODO: VOUS DEVEZ COMPLETEZ LE CONTROLLEUR SUIVANT
         pos_ref       = dri_ref;
+        pos_error     = 0; // TODO
+        pos_error_ddt = 0; // TODO
+        pos_error_int = 0; // TODO
 
-        pos_error     = pos_ref - pos_now; // TODO
+        // Anti wind-up
+        if (pos_error_int > pos_ei_sat)
+        {
+            pos_error_int = pos_ei_sat;
+        }
 
-        pos_error_int += pos_error * dt; // TODO
-        
-        //Anti-windup saturation
-        if (pos_error_int > pos_ei_sat) pos_error_int = pos_ei_sat;
-        if (pos_error_int < -pos_ei_sat) pos_error_int = -pos_ei_sat;
-
-        pos_error_ddt = (pos_now - pos_old) / dt; // TODO
-
-
-        dri_cmd = pos_kp * pos_error + pos_ki * pos_error_int - pos_kd * pos_error_ddt; // TODO
+        dri_cmd = 0; // TODO
 
         dri_pwm = cmd2pwm(dri_cmd);
-
-        pos_old = pos_now;
     }
     ///////////////////////////////////////////////////////
     else if (ctl_mode == 4)

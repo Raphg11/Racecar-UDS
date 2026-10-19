@@ -8,7 +8,6 @@ from nav_msgs.msg import Odometry
 from sensor_msgs.msg import LaserScan
 
 import socket
-import time
 import threading
 from struct import pack
 
@@ -25,118 +24,36 @@ class ROSMonitor(Node):
         self.obstacle_detected = bool(False)
 
         # Socket parameters
-        self.host = self.declare_parameter("host", "0.0.0.0").value
+        self.host = self.declare_parameter("host", "127.0.0.1").value
         self.remote_request_port = self.declare_parameter(
             "remote_request_port", 65432
         ).value
-        self.broadcast = self.declare_parameter("broadcast", "10.0.1.255").value
+        self.broadcast = self.declare_parameter("broadcast", "127.0.0.255").value
         self.position_broad_port = self.declare_parameter(
             "pos_broadcast_port", 65431
         ).value
 
         self.remote_request_t = threading.Thread(target=self.remote_request_loop)
 
+        # TODO: Add your subscription(s) here.
 
-        
-        # Abonnement à l'odométrie et Lidar (code inspiré du labo)
-        self.subscribe_Odometry = self.create_subscription(Odometry, "racecar/odom/filtered", self.odometry_callback, 1)
-        self.subscribe_Lidar = self.create_subscription(LaserScan, "racecar/scan", self.scan_callback, 1)
-
-        # Timer pour le service PositionBroadcast (1Hz)
-        self.broadcast_timer = self.create_timer(1.0, self.position_broadcast_callback)
         self.remote_request_t.start()
 
         self.get_logger().info(f"{self.get_name()} started.")
 
-
-
     def remote_request_loop(self):
         # NOTE: It is recommended to initialize your socket here.
-        server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        server_socket.bind((self.host, self.remote_request_port))
-        server_socket.listen()
-        server_socket.settimeout(1.0)
-        self.get_logger().info(f"Serveur TCP en écoute sur {self.host}:{self.remote_request_port}")
-        
+
+        # TODO: Implement the RemoteRequest service here.
         while rclpy.ok():
-            try:
-                
-                connexion, addresse = server_socket.accept()
-                
-                with connexion:
-                   
-                    data = connexion.recv(4)
-                    if not data:
-                        continue
-                        
-                    commande = data.decode('ascii')
-                    reponse = b''
-                    
-                    if commande == "RPOS":
-                        reponse = pack("fff4x", self.position[0], self.position[1], self.position[2])
-                        
-                    elif commande == "OBSF":
-                        val_obstacle = 1 if self.obstacle_detected else 0
-                        reponse = pack("I12x", val_obstacle)
-                        
-                    elif commande == "RBID":
-                        reponse = pack("I12x", self.id)
-                        
-                    else:
-                        reponse = pack("16x")
-                        
-                    connexion.sendall(reponse)
-                    
-            except socket.timeout:
-                
-                pass
-            except Exception as e:
-                self.get_logger().error(f"Erreur de connexion TCP : {e}")
+            pass
 
-        server_socket.close()
-
+    # TODO: Implement the PositionBroadcast service here.
+    # NOTE: It is recommended to initializae your socket locally.
 
     def shutdown(self):
-        """Gracefully shutdown the thmsgreads BEFORE terminating the node."""
+        """Gracefully shutdown the threads BEFORE terminating the node."""
         self.remote_request_t.join()
-
-
-    def odometry_callback(self, msg: Odometry):
-           x = msg.pose.pose.position.x
-           y = msg.pose.pose.position.y
-           orientation = msg.pose.pose.orientation
-           theta = yaw_from_quaternion(orientation)
-           
-           
-           print(f"Position -> X: {x:.3f}, Y: {y:.3f}, Theta: {theta:.3f}")
-           self.position = (x,y,theta)
-
-    def scan_callback(self, msg: LaserScan):
-        #un obstacle à moins de 1 mètre
-        self.obstacle_detected = False
-        for distance in msg.ranges:
-            if 0.0 <distance < 1.0:
-                self.obstacle_detected = True
-                break
-
-
-    def position_broadcast_callback(self):
-        """Envoie la position et l'ID du robot en UDP broadcast toutes les secondes."""
-        try:
-            
-            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            
-            s.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-            
-            payload = pack("fffI", self.position[0], self.position[1], self.position[2], self.id)
-            
-            s.sendto(payload, (self.broadcast, self.position_broad_port))
-            s.close()
-            
-        except Exception as e:
-            self.get_logger().error(f"Erreur lors du broadcast UDP : {e}")
-
 
 
 def main(args=None):

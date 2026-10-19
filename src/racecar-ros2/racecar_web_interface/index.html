@@ -39,12 +39,12 @@
                     data-target="#navbarToggleExternalContent">
                     <span class="navbar-toggler-icon"></span>
                 </button>
-                <div class="text-white h3">
+                <div class="text-white h3 p-2">
 
                     Utilisateur : <span id="utilisateurracecar">Utilisateur</span>
                 </div>
-                <div class="text" id="connectionracecarstate">   En attente de connexion au racecar ...</div>
-                <button id="deconnectionbtn" class="btn-white">Déconnexion</button>
+                <div class="text p-3" id="connectionracecarstate" >   En attente de connexion au racecar ...</div>
+                <button id="deconnectionbtn" class="btn-white" >Déconnexion</button>
             </div>
         </div>
     </nav>
@@ -53,18 +53,25 @@
     <!-- Main layout BEGIN-->
     <div class="container-fluid">
         <div class="row">
-            <div class="col-12 col-md-4">
-                <h2 class="text-black h12">Statut</h2>
-                <textarea id="boiteStatut" class="form-control mb-2" rows="5" readonly></textarea>
+            <div class="col-12 col-md-4 p-2">
+                <div class="card shadow-sm mb-4">
+                    <h2 class="text-black h12">Statut</h2>
+                    <textarea id="boiteStatut" class="form-control mb-2" rows="5" readonly></textarea>
 
-                <button id="btnEffacer"class="btn btn-dark">Effacer</button>
-
-                <h2 class="text-black h12">Controle</h2>
-                <div class="row">
-                    <button id="btnAvancez" class="btn btn-dark">Avancer</button>
-                    <button id="btnArretez"class="btn btn-dark">Arreter</button>
+                    <button id="btnEffacer"class="btn btn-dark">Effacer</button>
 
                 </div>
+
+                <div class="card shadow-sm pb-2 p-2">
+                    <h2 class="text-black h12">Controle</h2>
+                    <div class="row justify-content-center">
+                   
+                        <button id="btnAvancez" class="btn btn-dark mx-2">Avancer</button>
+                        <button id="btnArretez" class="btn btn-dark mx-2">Arreter</button>
+                    </div>
+                </div>
+
+                
             </div>
 
             <div class="col-12 col-md-8">

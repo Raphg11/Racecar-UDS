@@ -61,7 +61,7 @@ ajouterStatut("Initialisation du joystick...")
 let joystick; 
 const zone = document.getElementById('zoneJoystick');
 
-if (btnAvancez.disabled == false) {
+//if (btnAvancez.disabled == false) {
 
     joystick = new VirtualJoystick({
         container: zone,
@@ -73,7 +73,7 @@ if (btnAvancez.disabled == false) {
         // baseY: 100 //
     });
 
-}
+//}
 
 
 

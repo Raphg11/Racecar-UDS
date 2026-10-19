@@ -60,8 +60,10 @@ console.log("Initialisation du joystick...");
 ajouterStatut("Initialisation du joystick...")
 let joystick; 
 const zone = document.getElementById('zoneJoystick');
-    
-joystick = new VirtualJoystick({
+
+if (btnAvancez.disabled == false) {
+
+    joystick = new VirtualJoystick({
         container: zone,
         mouseSupport: true,
         limitStickTravel: true,
@@ -70,7 +72,9 @@ joystick = new VirtualJoystick({
         // baseX: zone.offsetWidth / 2, 
         // baseY: 100 //
     });
-;
+
+}
+
 
 
 

@@ -55,6 +55,25 @@ connectROS(); //directement executer la fonction de connexion
 // Calls added inside the anynonymous function are triggered after the page is loaded
 //$(document).ready(() => {document.getElementById("log").value = "Default text\n"});
 
+//Creation du joystick
+console.log("Initialisation du joystick...");
+ajouterStatut("Initialisation du joystick...")
+let joystick; 
+const zone = document.getElementById('zoneJoystick');
+    
+joystick = new VirtualJoystick({
+        container: zone,
+        mouseSupport: true,
+        limitStickTravel: true,
+        stickRadius: 50,
+        // stationaryBase: true,
+        // baseX: zone.offsetWidth / 2, 
+        // baseY: 100 //
+    });
+;
+
+
+
 // rosbridge / roslibjs function to connect to ROS
 function connectROS()
 {
@@ -84,8 +103,10 @@ function connectROS()
         connectionracecarstate.style.color = "red";
     });
 
-    rosbridgeServer.on("close", () => { console.log("Closed connection to WebSocket server."); });
-    ajouterStatut("Connection échoué");
+    rosbridgeServer.on("close", () => { console.log("Closed connection to WebSocket server."); 
+        ajouterStatut("Connection échoué");
+    });
+    
   
 
 }
@@ -97,8 +118,15 @@ var twist = new ROSLIB.Message(
 // Add timer callbacks here
 setInterval(() => {
     if (velocityCmdTopic != null) {
-        // HINT: The `twist` object's values SHOULD be updated BEFORE publishing the message.
-        // Publish the message
+       if (joystick.right() || joystick.left() || joystick.up() || joystick.down()) {
+        twist.linear.x = -joystick.deltaY() / 50.0;
+        twist.angular.z = -joystick.deltaX() / 50.0;
+       }
+       else {
+            twist.linear.x = 0.0;
+            twist.angular.z = 0.0;
+       }
+       
         velocityCmdTopic.publish(twist);
     }
 }, 200);

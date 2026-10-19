@@ -1,6 +1,7 @@
 // On ouvre les trucs en memoire de la page de login
 let IpSauvegarde = sessionStorage.getItem('racecar_ip');
 let NomSauvegarde = sessionStorage.getItem('racecar_user');
+
 document.getElementById('rosMasterIp').value = IpSauvegarde;
 document.getElementById('utilisateurracecar').innerText = NomSauvegarde;
 
@@ -14,6 +15,7 @@ const btnEffacer = document.getElementById('btnEffacer');
 const btnAvancez = document.getElementById('btnAvancez');
 const btnArretez = document.getElementById('btnArretez');
 const btnConnect = document.getElementById('btnConnect');
+const deconnectionbtn = document.getElementById('deconnectionbtn')
 
 btnAvancez.disabled = true;
 btnArretez.disabled = true;
@@ -40,6 +42,11 @@ btnAvancez.addEventListener('click', function() {
 btnArretez.addEventListener('click', function() {
     ajouterStatut('Arrêt !');
     twist.linear.x = 0.0;
+});
+
+deconnectionbtn.addEventListener('click', function(){
+
+    deconnection();
 });
 
 
@@ -86,3 +93,11 @@ setInterval(() => {
         velocityCmdTopic.publish(twist);
     }
 }, 200);
+
+
+function deconnection(){
+
+    
+
+    window.location.href = 'login.html'; //rediriger
+}

@@ -1,7 +1,9 @@
 const usernamevalue = "Racecar11"
 const passwordvalue = "Raphestbo";
 
+
 let connected = false;
+
 function verifyconnection()
 {
     let username = document.getElementById('Username').value;

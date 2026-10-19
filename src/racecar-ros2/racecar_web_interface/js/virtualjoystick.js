@@ -162,8 +162,11 @@ VirtualJoystick.prototype._onDown	= function(x, y)
 {
 	this._pressed	= true; 
 	if(this._stationaryBase == false){
-		this._baseX	= x;
-		this._baseY	= y;
+		this._baseX = x - this._container.getBoundingClientRect().x;
+        this._baseY = y - this._container.getBoundingClientRect().y;
+        
+        this._baseEl.style.display  = "";
+        this._move(this._baseEl.style, (this._baseX - this._baseEl.width /2), (this._baseY - this._baseEl.height/2));
 		this._baseEl.style.display	= "";
 		this._move(this._baseEl.style, (this._baseX - this._baseEl.width /2), (this._baseY - this._baseEl.height/2));
 	}

@@ -93,9 +93,16 @@ function connectROS()
         btnArretez.disabled = false;
         connectionracecarstate.innerText = "Connecté au racecar";
         connectionracecarstate.style.color = "green";
+        
+        // Mettre à jour l'IP du flux vidéo de la caméra
+        const fluxCamera = document.getElementById('fluxCamera');
+        if (fluxCamera) {
+            fluxCamera.src = "http://" + rosMasterIp + ":8080/stream?topic=/racecar/camera";
+        }
+
         // Create a topic object to send propulsion commands to the racecar
         velocityCmdTopic = new ROSLIB.Topic(
-            {ros : rosbridgeServer, name : "/prop_cmd", messageType : "geometry_msgs/Twist"});
+            {ros : rosbridgeServer, name : "/racecar/cmd_vel_abtr_2", messageType : "geometry_msgs/Twist"});
     });
 
     rosbridgeServer.on(

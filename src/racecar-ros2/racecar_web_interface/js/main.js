@@ -15,7 +15,8 @@ const btnEffacer = document.getElementById('btnEffacer');
 const btnAvancez = document.getElementById('btnAvancez');
 const btnArretez = document.getElementById('btnArretez');
 const btnConnect = document.getElementById('btnConnect');
-const deconnectionbtn = document.getElementById('deconnectionbtn')
+const deconnectionbtn = document.getElementById('deconnectionbtn');
+const connectionracecarstate = document.getElementById('connectionracecarstate');
 
 btnAvancez.disabled = true;
 btnArretez.disabled = true;
@@ -49,7 +50,7 @@ deconnectionbtn.addEventListener('click', function(){
     deconnection();
 });
 
-
+connectROS(); //directement executer la fonction de connexion
 
 // Calls added inside the anynonymous function are triggered after the page is loaded
 //$(document).ready(() => {document.getElementById("log").value = "Default text\n"});
@@ -67,18 +68,26 @@ function connectROS()
         ajouterStatut("Connecté au Racecar");
         btnAvancez.disabled = false;
         btnArretez.disabled = false;
+        connectionracecarstate.innerText = "Connecté au racecar";
+        connectionracecarstate.style.color = "green";
         // Create a topic object to send propulsion commands to the racecar
         velocityCmdTopic = new ROSLIB.Topic(
             {ros : rosbridgeServer, name : "/prop_cmd", messageType : "geometry_msgs/Twist"});
     });
 
     rosbridgeServer.on(
-        "error", (error) => { console.log("Error connecting to WebSocket server: ", error); });
+        "error", (error) => { console.log("Error connecting to WebSocket server: ", error); 
+    
+        btnAvancez.disabled = true;
+        btnArretez.disabled = true;
+        connectionracecarstate.innerText = "Non connecté au racecar";
+        connectionracecarstate.style.color = "red";
+    });
 
-    rosbridgeServer.on("close", () => { console.log("Closed connection to WebSocket server."); });à
+    rosbridgeServer.on("close", () => { console.log("Closed connection to WebSocket server."); });
     ajouterStatut("Connection échoué");
-    btnAvancez.disabled = true;
-    btnArretez.disabled = true;
+  
+
 }
 
 // Create a message that conforms to the `Twist` structure defined in ROS.
@@ -96,8 +105,11 @@ setInterval(() => {
 
 
 function deconnection(){
-
     
-
+    if (rosbridgeServer != null) {
+        rosbridgeServer.close();
+    }
+    
+    sessionStorage.clear();
     window.location.href = 'login.html'; //rediriger
 }

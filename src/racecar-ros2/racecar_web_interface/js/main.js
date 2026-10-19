@@ -1,4 +1,3 @@
-main.js
 // On ouvre les trucs en memoire de la page de login
 let IpSauvegarde = sessionStorage.getItem('racecar_ip');
 let NomSauvegarde = sessionStorage.getItem('racecar_user');
@@ -62,7 +61,7 @@ ajouterStatut("Initialisation du joystick...")
 let joystick;
 const zone = document.getElementById('zoneJoystick');
  
-if (btnAvancez.disabled == false) {
+//if (btnAvancez.disabled == false) {
  
     joystick = new VirtualJoystick({
         container: zone,
@@ -74,7 +73,7 @@ if (btnAvancez.disabled == false) {
         // baseY: 100 //
     });
  
-}
+//}
  
  
  
@@ -96,7 +95,7 @@ function connectROS()
         connectionracecarstate.style.color = "green";
         // Create a topic object to send propulsion commands to the racecar
         velocityCmdTopic = new ROSLIB.Topic(
-            {ros : rosbridgeServer, name : "/prop_cmd", messageType : "geometry_msgs/Twist"});
+            {ros : rosbridgeServer, name : "/racecar/cmd_vel_abtr_2", messageType : "geometry_msgs/Twist"});
     });
  
     rosbridgeServer.on(
@@ -123,6 +122,7 @@ var twist = new ROSLIB.Message(
 // Add timer callbacks here
 setInterval(() => {
     if (velocityCmdTopic != null) {
+       
        if (joystick.right() || joystick.left() || joystick.up() || joystick.down()) {
         twist.linear.x = -joystick.deltaY() / 50.0;
         twist.angular.z = -joystick.deltaX() / 50.0;

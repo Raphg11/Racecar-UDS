@@ -20,7 +20,7 @@
 #define MAX_NUMBERS 19
 using std::placeholders::_1;
 
-std::string port = "/dev/ttyUSB0";
+std::string port = "/dev/ttyUSB1";
 long int baud = 115200;
 
 class ArduinoCommunicationNode : public rclcpp::Node
@@ -29,7 +29,20 @@ class ArduinoCommunicationNode : public rclcpp::Node
     // Constructor
     ArduinoCommunicationNode() : Node("pb2ros") // is a Node
     {
-
+        // Si ttyUSB1 existe (le LiDAR a pris ttyUSB0), on prend ttyUSB1, sinon ttyUSB0
+ 
+        if (access("/dev/ttyUSB1", F_OK) != -1) {
+ 
+            port = "/dev/ttyUSB1";
+ 
+        } else {
+ 
+            port = "/dev/ttyUSB0";
+ 
+        }
+ 
+        RCLCPP_INFO(this->get_logger(), "Connecting to Arduino on port: %s", port.c_str());
+        
         my_serialp = new serial::Serial(
             port, baud, serial::Timeout::simpleTimeout(1000)); // start serial com with arduino
         std::this_thread::sleep_for(std::chrono::seconds(2));  // wait for 2 seconds to let it

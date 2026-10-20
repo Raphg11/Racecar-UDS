@@ -1,7 +1,7 @@
 // On ouvre les trucs en memoire de la page de login
 let IpSauvegarde = sessionStorage.getItem('racecar_ip');
 let NomSauvegarde = sessionStorage.getItem('racecar_user');
- 
+let avance = 0;
 document.getElementById('rosMasterIp').value = IpSauvegarde;
 document.getElementById('utilisateurracecar').innerText = NomSauvegarde;
  
@@ -37,12 +37,15 @@ btnEffacer.addEventListener('click', function() {
  
 btnAvancez.addEventListener('click', function() {
     ajouterStatut('En avant !');
-    twist.linear.x = 1.0;
+    avance = 1;
 });
  
 btnArretez.addEventListener('click', function() {
     ajouterStatut('Arrêt !');
+    avance = 0;
     twist.linear.x = 0.0;
+    twist.angular.z = 0.0;
+    
 });
  
 deconnectionbtn.addEventListener('click', function(){
@@ -95,7 +98,7 @@ function connectROS()
         connectionracecarstate.style.color = "green";
         // Create a topic object to send propulsion commands to the racecar
         velocityCmdTopic = new ROSLIB.Topic(
-            {ros : rosbridgeServer, name : "/racecar/cmd_vel_abtr_2", messageType : "geometry_msgs/Twist"});
+            {ros : rosbridgeServer, name : "/prop_cmd", messageType : "geometry_msgs/Twist"});
     });
  
     rosbridgeServer.on(
@@ -126,11 +129,15 @@ setInterval(() => {
        if (joystick.right() || joystick.left() || joystick.up() || joystick.down()) {
         twist.linear.x = -joystick.deltaY() / 50.0;
         twist.angular.z = -joystick.deltaX() / 50.0;
+       }else if (avance ==0){
+        twist.linear.x=0.0
+        twist.angular.z=0.0
        }
-       else {
-            twist.linear.x = 0.0;
-            twist.angular.z = 0.0;
+
+       else if (avance ==1) {
+        twist.linear.x = 0.5;
        }
+       
        
         velocityCmdTopic.publish(twist);
     }

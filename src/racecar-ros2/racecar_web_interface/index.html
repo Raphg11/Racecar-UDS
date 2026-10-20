@@ -66,10 +66,13 @@
                     <h2 class="text-black h12">Controle</h2>
                     <div class="row justify-content-center">
                    
-                        <button id="btnAvancez" class="btn btn-dark mx-2">Avancer</button>
-                        <button id="btnArretez" class="btn btn-dark mx-2">Arreter</button>
+                        <button id="btnAvancez" class="btn btn-success mx-2">Avancer</button>
+                        <button id="btnArretez" class="btn btn-danger mx-2">Arreter</button>
                     </div>
                 </div>
+
+                <div id="zoneJoystick" class="d-flex justify-content-center align-items-center rounded" style="width: 100%; height: 200px; background-color: #e9ecef; border: 2px dashed #6c757d; position: relative; touch-action: none;"></div>
+
  
                
             </div>
@@ -78,8 +81,7 @@
  
                 <h2 class="text-black h12">Camera</h2>
  
-                <img id="fluxCamera" src="http://192.168.137.63:8080/stream?topic=/racecar/camera/image_raw" class="img-fluid border w-100" alt="Flux Caméra">
-                <div id="zoneJoystick" class="d-flex justify-content-center align-items-center rounded" style="width: 50%; height: 200px; background-color: #e9ecef; border: 2px dashed #6c757d; position: relative; touch-action: none;">
+                <img id="fluxCamera" src="http://192.168.137.63:8080/stream?topic=/racecar/camera" class="img-fluid border w-100" alt="Flux Caméra">
    
  
             </div>
@@ -90,7 +92,7 @@
  
        
  
- 
+
     </div>
     <!-- Main layout END-->
  

@@ -36,8 +36,8 @@ class SlashController(Node):
         # TODO: test on real racecar to validate
         # Design offline, paste here. Shapes must match the x you assemble below.
         self.params_autopilot = {
-            "K": None,  # (m, n)
-            "ubar": None,  # (m,) feedforward
+            "K": np.array([[8.242, 0, 0],[0, 0.316, 0.538]]),  # (m, n)
+            "ubar": np.array([[1.945, 0.0]]),  # (m,) feedforward
         }
         self.params_parking = {
             "K": None,
@@ -138,8 +138,16 @@ class SlashController(Node):
                 # x = np.array([ ... ])   # pick from the catalog
                 # r = np.array([ ... ])
 
-                x = None
-                r = None
+                x = np.array([
+                    self.velocity,
+                    self.laser_y,
+                    self.laser_theta
+                ])
+                r = np.array([
+                    2.0,
+                    0.0,
+                    0.0
+                ])
 
                 u = self.ctl_autopilot(x, r)
 
@@ -206,11 +214,11 @@ class SlashController(Node):
 
         params = self.params_autopilot if params is None else params
 
-        # K = params["K"]
-        # ubar = params["ubar"]
-        # u = ubar - K @ (x - r)
+        K = params["K"]
+        ubar = params["ubar"]
+        u = ubar - K @ (x - r)
 
-        u = np.zeros(2)
+        #u = np.zeros(2)
         return u
 
     #######################################

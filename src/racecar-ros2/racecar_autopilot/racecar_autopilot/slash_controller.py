@@ -31,11 +31,17 @@ class SlashController(Node):
         # Parameters
 
         # Controller
-        self.steering_offset = 0.0  # To adjust according to the vehicle
-
-        # Signes des mesures LiDAR (a valider sur le vrai vehicule : mettre -1.0 si inverse)
-        self.y_sign = 1.0      # y > 0 doit vouloir dire : auto a GAUCHE du centre du corridor
-        self.theta_sign = 1.0  # theta > 0 doit vouloir dire : nez de l'auto tourne vers la GAUCHE
+        # Reglages modifiables EN DIRECT, sans rebuild, ex. :
+        #   ros2 param set /controller y_sign -1.0
+        #   ros2 param set /controller theta_sign -1.0
+        #   ros2 param set /controller steering_offset 0.02
+        self.declare_parameter("steering_offset", 0.0)  # To adjust according to the vehicle
+        # Signes des mesures LiDAR (mettre -1.0 si inverse)
+        self.declare_parameter("y_sign", 1.0)      # y > 0 : auto a GAUCHE du centre du corridor
+        self.declare_parameter("theta_sign", 1.0)  # theta > 0 : nez de l'auto tourne vers la GAUCHE
+        self.steering_offset = 0.0
+        self.y_sign = 1.0
+        self.theta_sign = 1.0
         self.max_steering = 0.52  # [rad] ~30 deg, saturation du servo sur l'Arduino
 
         # TODO: test on real racecar to validate
@@ -73,6 +79,11 @@ class SlashController(Node):
 
     #######################################
     def timed_controller(self):
+
+        # Lecture des parametres (modifiables en direct avec ros2 param set)
+        self.steering_offset = self.get_parameter("steering_offset").value
+        self.y_sign = self.get_parameter("y_sign").value
+        self.theta_sign = self.get_parameter("theta_sign").value
 
         # Computation of dy / dt with filtering
         self.laser_dy_fill = (

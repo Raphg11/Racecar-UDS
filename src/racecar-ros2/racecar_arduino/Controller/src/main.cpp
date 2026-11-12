@@ -61,6 +61,10 @@ const float pos_ki     = 1.0;
 const float pos_ei_sat = 10000.0;
 const float vel_filter_omega = 7.0f;
 
+// Pour APP4
+const float vel_k2 = 8.242f;
+const float vel_ubar = 1.945f;
+
 // Comparison targets [us]
 const unsigned long period_ctl_us      = 2000;    // 500 Hz internal PID loop
 const unsigned long period_com_us      = 20000;   // 50 Hz ROS communication
@@ -478,6 +482,17 @@ void ctl(float dt_ctl_ms) // [ms] measured control delta since the last tick
         pos_error_int = 0;
 
         dri_pwm = pwm_zer_dri;
+    }
+    else if (ctl_mode == 5)
+    {
+        // Controle en vitesse pour APP4 cruse control
+
+        float vel_ref   = dri_ref;            
+        float vel_error = vel_ref - vel_fil;  
+        
+        dri_cmd = vel_ubar + vel_k2 * vel_error;
+        // Conversion en PWM
+        dri_pwm = cmd2pwm(dri_cmd);
     }
     ////////////////////////////////////////////////////////
     else

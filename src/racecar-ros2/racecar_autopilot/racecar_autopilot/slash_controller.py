@@ -36,10 +36,8 @@ class SlashController(Node):
         # TODO: test on real racecar to validate
         # Design offline, paste here. Shapes must match the x you assemble below.
         self.params_autopilot = {
-            "K": np.array([[8.242, 0, 0],
-                           [0, 0.316, 0.538]]),
-            "ubar": np.array([[1.945],
-                              [0.0]])
+            "K": np.array([0.316, 0.538]),
+            "ubar": 0.0
         }
         self.params_parking = {
             "K": np.array([[1,0,0],
@@ -137,21 +135,43 @@ class SlashController(Node):
                 #########################################################
                 # TODO: complètez — assemblage de x, r et arduino_mode
 
-                x = np.array([[self.velocity],
-                              [self.laser_y],
-                              [self.laser_theta]])   # pick from the catalog
+                # x = np.array([[self.velocity],
+                #               [self.laser_y],
+                #               [self.laser_theta]])   # pick from the catalog
 
-                r = np.array([
-                    [2.0],
-                    [0.0],
-                    [0.0]
+                # r = np.array([
+                #     [2.0],
+                #     [0.0],
+                #     [0.0]
+                # ])
+
+                # u = self.ctl_autopilot(x, r)
+
+                # self.propulsion_cmd = u[0]
+                # self.steering_cmd = u[1] + self.steering_offset
+                # self.arduino_mode = 0  # complètez: 1, 2 ou 3 (0 = sortie nulle)
+                
+                # Autopilot (Option #2)
+
+                # 1. États Lidar uniquement
+                x1 = np.array([
+                    self.laser_y,
+                    self.laser_theta
+                ])
+                r1 = np.array([
+                    self.steering_ref,  # yd (consigne latérale)
+                    0.0                 # theta_d = 0 (parallèle au mur)
                 ])
 
-                u = self.ctl_autopilot(x, r)
+                # 2. Calcul du braquage delta_desire (K1 * x1)
+                delta_desire = self.ctl_autopilot(x1, r1)
 
-                self.propulsion_cmd = u[0]
-                self.steering_cmd = u[1] + self.steering_offset
-                self.arduino_mode = 0  # complètez: 1, 2 ou 3 (0 = sortie nulle)
+                # 3. Trajet direct de vd vers l'Arduino (ligne pointillée)
+                self.propulsion_cmd = self.propulsion_ref  # vd (ex: 2.0 m/s)
+                self.steering_cmd = float(delta_desire) + self.steering_offset
+                
+                # 4. Mode 2 pour activer la boucle PI de vitesse (K2) sur l'Arduino
+                self.arduino_mode = 5
                 #########################################################
 
             elif self.high_level_mode == 4:
@@ -214,7 +234,7 @@ class SlashController(Node):
 
         K = params["K"]
         ubar = params["ubar"]
-        u = ubar - K @ (x - r)
+        u = ubar - np.dot(K, (x - r))
 
         return u
 

@@ -31,17 +31,19 @@ class SlashController(Node):
         # Parameters
 
         # Controller
-        self.steering_offset = 0.0  # To adjust according to the vehicle
+        self.ssteering_offset = 0.0  # To adjust according to the vehicle
 
         # TODO: test on real racecar to validate
         # Design offline, paste here. Shapes must match the x you assemble below.
         self.params_autopilot = {
-            "K": np.array([[8.242, 0, 0],[0, 0.316, 0.538]]),  # (m, n)
-            "ubar": np.array([[1.945, 0.0]]),  # (m,) feedforward
+            "K": np.array([[8.242, 0, 0],
+                           [0, 0.316, 0.538]]),
+            "ubar": np.array([[1.945],
+                              [0.0]])
         }
         self.params_parking = {
-            "K": None,
-            "ubar": None,
+            "K": np.array([[1,0,0],
+                           [0,0.375,0.6]])
         }
 
         # Memory
@@ -135,18 +137,14 @@ class SlashController(Node):
                 #########################################################
                 # TODO: complètez — assemblage de x, r et arduino_mode
 
-                # x = np.array([ ... ])   # pick from the catalog
-                # r = np.array([ ... ])
+                x = np.array([[self.velocity],
+                              [self.laser_y],
+                              [self.laser_theta]])   # pick from the catalog
 
-                x = np.array([
-                    self.velocity,
-                    self.laser_y,
-                    self.laser_theta
-                ])
                 r = np.array([
-                    2.0,
-                    0.0,
-                    0.0
+                    [2.0],
+                    [0.0],
+                    [0.0]
                 ])
 
                 u = self.ctl_autopilot(x, r)
@@ -218,7 +216,6 @@ class SlashController(Node):
         ubar = params["ubar"]
         u = ubar - K @ (x - r)
 
-        #u = np.zeros(2)
         return u
 
     #######################################
@@ -226,11 +223,9 @@ class SlashController(Node):
 
         params = self.params_parking if params is None else params
 
-        # K = params["K"]
-        # ubar = params["ubar"]
-        # u = ubar - K @ (x - r)
+        K = params["K"]
+        u = - K @ (x - r)
 
-        u = np.zeros(2)
         return u
 
     #######################################

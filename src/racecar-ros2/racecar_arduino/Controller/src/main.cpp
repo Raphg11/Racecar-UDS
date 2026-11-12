@@ -380,10 +380,12 @@ void ctl(float dt_ctl_ms) // [ms] measured control delta since the last tick
     //////////////////////////////////////////////////////
     else if (ctl_mode == 2)
     {
+        //Option 2
         // Low-level Velocity control
         // Commands received in [m/sec] setpoints
 
         float vel_ref, vel_error;
+        vel_ref=
 
         // TODO: VOUS DEVEZ COMPLETEZ LE CONTROLLEUR SUIVANT
         vel_ref       = dri_ref;

@@ -46,6 +46,15 @@ def generate_launch_description():
             output='screen',
         ),
 
+        # Estimation de la position dans le corridor (laser_y, laser_theta) a partir du LiDAR
+        Node(
+            package='racecar_autopilot',
+            executable='wall_estimator',
+            name='wall_estimator',
+            output='screen',
+            remappings=[('/scan', '/racecar/scan')],
+        ),
+
         TimerAction(
             period=5.0,  # Adjust the delay duration as needed (in seconds)
             actions=[

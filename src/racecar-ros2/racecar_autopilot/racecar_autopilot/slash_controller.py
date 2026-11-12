@@ -33,6 +33,11 @@ class SlashController(Node):
         # Controller
         self.steering_offset = 0.0  # To adjust according to the vehicle
 
+        # Signes des mesures LiDAR (a valider sur le vrai vehicule : mettre -1.0 si inverse)
+        self.y_sign = 1.0      # y > 0 doit vouloir dire : auto a GAUCHE du centre du corridor
+        self.theta_sign = 1.0  # theta > 0 doit vouloir dire : nez de l'auto tourne vers la GAUCHE
+        self.max_steering = 0.52  # [rad] ~30 deg, saturation du servo sur l'Arduino
+
         # TODO: test on real racecar to validate
         # Design offline, paste here. Shapes must match the x you assemble below.
         self.params_autopilot = {
@@ -155,8 +160,8 @@ class SlashController(Node):
 
                 # 1. États Lidar uniquement
                 x1 = np.array([
-                    self.laser_y,
-                    self.laser_theta
+                    self.y_sign * self.laser_y,
+                    self.theta_sign * self.laser_theta
                 ])
                 r1 = np.array([
                     self.steering_ref,  # yd (consigne latérale)
@@ -164,14 +169,22 @@ class SlashController(Node):
                 ])
 
                 # 2. Calcul du braquage delta_desire (K1 * x1)
-                delta_desire = self.ctl_autopilot(x1, r1)
+                delta_desire = float(np.clip(self.ctl_autopilot(x1, r1),
+                                             -self.max_steering, self.max_steering))
 
                 # 3. Trajet direct de vd vers l'Arduino (ligne pointillée)
                 self.propulsion_cmd = self.propulsion_ref  # vd (ex: 2.0 m/s)
-                self.steering_cmd = float(delta_desire) + self.steering_offset
-                
-                # 4. Mode 2 pour activer la boucle PI de vitesse (K2) sur l'Arduino
+                self.steering_cmd = delta_desire + self.steering_offset
+
+                # 4. Mode 5 = cruise control APP4 sur l'Arduino (vel_ubar + vel_k2 * erreur)
                 self.arduino_mode = 5
+
+                # Debug (2x par seconde) pour valider les signes
+                self.get_logger().info(
+                    f"[autopilot] y={x1[0]:+.3f} m  theta={x1[1]:+.3f} rad  "
+                    f"delta={delta_desire:+.3f} rad  v={self.velocity:.2f} m/s",
+                    throttle_duration_sec=0.5,
+                )
                 #########################################################
 
             elif self.high_level_mode == 4:

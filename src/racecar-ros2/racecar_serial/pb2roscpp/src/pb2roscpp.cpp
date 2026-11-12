@@ -6,6 +6,7 @@
 #include <iostream>
 #include <stdio.h>
 #include <bitset>
+#include <cstring>
 
 #include "pb_encode.h"
 #include "pb_decode.h"
@@ -20,7 +21,7 @@
 #define MAX_NUMBERS 19
 using std::placeholders::_1;
 
-std::string port = "/dev/ttyUSB1";
+std::string port = "/dev/serial/by-id/usb-1a86_USB_Serial-if00-port0";
 long int baud = 115200;
 
 class ArduinoCommunicationNode : public rclcpp::Node
@@ -29,20 +30,11 @@ class ArduinoCommunicationNode : public rclcpp::Node
     // Constructor
     ArduinoCommunicationNode() : Node("pb2ros") // is a Node
     {
-        // Si ttyUSB1 existe (le LiDAR a pris ttyUSB0), on prend ttyUSB1, sinon ttyUSB0
- 
-        if (access("/dev/ttyUSB1", F_OK) != -1) {
- 
-            port = "/dev/ttyUSB1";
- 
-        } else {
- 
-            port = "/dev/ttyUSB0";
- 
-        }
- 
+        // Port configurable via paramètre ROS (défaut : chemin stable by-id de l'Arduino CH340)
+        port = this->declare_parameter<std::string>("serial_port", port);
+
         RCLCPP_INFO(this->get_logger(), "Connecting to Arduino on port: %s", port.c_str());
-        
+
         my_serialp = new serial::Serial(
             port, baud, serial::Timeout::simpleTimeout(1000)); // start serial com with arduino
         std::this_thread::sleep_for(std::chrono::seconds(2));  // wait for 2 seconds to let it
@@ -139,9 +131,9 @@ class ArduinoCommunicationNode : public rclcpp::Node
     void readMessage() // reading arduino messages callback
     {
         std::string msgbuffer;
-        int msgids[MAX_NUMBERS];
-        char *msgs[MAX_MSG_LEN];
-        uint8_t bufferin[MAX_MSG_LEN];
+        int msgids[MAX_MSG_LEN];
+        char *msgs[MAX_MSG_LEN] = {nullptr};
+        uint8_t bufferin[MAX_MSG_LEN] = {0};
         // empty array for decoding
         FloatList decodedData = {};
         /* Allocate space for the decoded message. */
@@ -153,14 +145,35 @@ class ArduinoCommunicationNode : public rclcpp::Node
 
             my_serialp->readline(msgbuffer, MAX_MSG_LEN, ">"); // readuntil the end of a message
 
-            // parse the message between Id and message parts
-            parseMsg((char *)msgbuffer.c_str(), msgids, msgs);
+            // Garde-fou : ignorer les trames incomplètes ou corrompues (bruit au démarrage, reset de l'Arduino...)
+            size_t start = msgbuffer.rfind('<');
+            if (start == std::string::npos || msgbuffer.empty() || msgbuffer.back() != '>') {
+                RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
+                                     "Trame Arduino incomplete ignoree");
+                return;
+            }
+            std::string frame = msgbuffer.substr(start + 1, msgbuffer.size() - start - 2); // contenu entre < et >
 
-            charsToBytes(msgs[0], bufferin); // convert to bytes for decoding
+            // parse the message between Id and message parts
+            int nbMsgs = parseMsg(&frame[0], msgids, msgs);
+            if (nbMsgs < 1 || msgs[0] == nullptr) {
+                RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
+                                     "Trame Arduino invalide ignoree");
+                return;
+            }
+
+            size_t hexLen = strlen(msgs[0]);
+            if (hexLen < 2 || hexLen % 2 != 0 || hexLen / 2 > MAX_MSG_LEN) {
+                RCLCPP_WARN_THROTTLE(this->get_logger(), *this->get_clock(), 1000,
+                                     "Longueur de trame Arduino invalide ignoree");
+                return;
+            }
+
+            size_t nbBytes = charsToBytes(msgs[0], bufferin); // convert to bytes for decoding
 
             pb_istream_t istream = pb_istream_from_buffer(
                 bufferin,
-                (size_t)78); // seting up decoding stream,   78 is the size of the incomming message
+                nbBytes); // seting up decoding stream with the actual size of the incoming message
             if (!pb_decode(&istream, FloatArray_fields, &message)) // actualy try to decode message
             {
                 const char *error = PB_GET_ERROR(&istream);
@@ -191,7 +204,7 @@ class ArduinoCommunicationNode : public rclcpp::Node
         int ind = 0;
         char *substr = strtok(inString, ";");
 
-        while (substr != NULL) {
+        while (substr != NULL && ind < MAX_MSG_LEN) {
             wholeMsgs[ind++] = substr;
             substr = strtok(NULL, ";");
         }
@@ -201,8 +214,8 @@ class ArduinoCommunicationNode : public rclcpp::Node
             char *id = strtok(wholeMsgs[i], "|");
             char *msg = strtok(NULL, "|");
 
-            msgIds[i] = atoi(id);
-            outStrings[i] = msg;
+            msgIds[i] = (id != NULL) ? atoi(id) : -1;
+            outStrings[i] = msg; // peut etre NULL si la trame est invalide
         }
 
         return ind;
@@ -227,7 +240,7 @@ class ArduinoCommunicationNode : public rclcpp::Node
         return val[0] * 16 + val[1];
     }
 
-    static void
+    static size_t
     charsToBytes(char *inString,
                  uint8_t *stringValue) // Code from PBUtils.cpp (original pb2ros2 codebase) converts
                                        // chars read from serial port to bytes for decoding
@@ -235,6 +248,7 @@ class ArduinoCommunicationNode : public rclcpp::Node
         int len = strlen(inString) / 2;
         for (int i = 0; i < len; ++i)
             stringValue[i] = charToHex(inString[(i * 2)], inString[(i * 2) + 1]);
+        return (size_t)len;
     }
 
     static void FloatList_add_number(

@@ -31,7 +31,7 @@ class SlashController(Node):
         # Parameters
 
         # Controller
-        self.ssteering_offset = 0.0  # To adjust according to the vehicle
+        self.steering_offset = 0.0  # To adjust according to the vehicle
 
         # TODO: test on real racecar to validate
         # Design offline, paste here. Shapes must match the x you assemble below.

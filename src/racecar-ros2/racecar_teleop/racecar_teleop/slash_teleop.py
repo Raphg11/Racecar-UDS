@@ -148,10 +148,10 @@ class Teleop(Node):
 
             # If top - bottom arrow is active
             elif(joy_msg.axes[5]):
-                # Template for a custom mode
-                self.cmd_msg.linear.x  = 0.0
-                self.cmd_msg.angular.z = 0.0
-                self.cmd_msg.linear.z  = 0.0 # Control mode
+                # Parking : position cible fixe (faire le reset encodeurs avant)
+                self.cmd_msg.linear.x  = 1.0  # position cible [m] - a ajuster
+                self.cmd_msg.angular.z = 0.0  # position laterale cible [m]
+                self.cmd_msg.linear.z  = 4.0  # Control mode (parking)
 
 
 

@@ -204,17 +204,30 @@ class SlashController(Node):
                 #########################################################
                 # TODO: complètez — assemblage de x, r et arduino_mode
 
-                # x = np.array([ ... ])   # pick from the catalog
-                # r = np.array([ ... ])
+                # LQR complet : x = [position encodeur, y, theta]
+                x = np.array([[self.position],
+                              [self.y_sign * self.laser_y],
+                              [self.theta_sign * self.laser_theta]])
 
-                x = None
-                r = None
+                r = np.array([[self.propulsion_ref],   # position cible [m]
+                              [self.steering_ref],     # position laterale cible [m]
+                              [0.0]])                  # parallele aux murs
 
-                u = self.ctl_parking(x, r)
+                u = self.ctl_parking(x, r)  # u = -K (x - r)
 
-                self.propulsion_cmd = u[0]
-                self.steering_cmd = u[1] + self.steering_offset
-                self.arduino_mode = 0  # complètez: 1, 2 ou 3 (0 = sortie nulle)
+                # u[0] = consigne de vitesse [m/s] (limitee), u[1] = braquage [rad]
+                self.propulsion_cmd = float(np.clip(u[0, 0], -1.0, 1.0))
+                self.steering_cmd = float(np.clip(u[1, 0], -self.max_steering,
+                                                  self.max_steering)) + self.steering_offset
+                self.arduino_mode = 2  # PI de vitesse sur l'Arduino (retombe a 0 a la cible)
+
+                # Debug (2x par seconde)
+                self.get_logger().info(
+                    f"[parking] pos={self.position:+.3f}/{self.propulsion_ref:+.2f} m  "
+                    f"y={x[1, 0]:+.3f} m  theta={x[2, 0]:+.3f} rad  "
+                    f"v_cmd={self.propulsion_cmd:+.2f} m/s  delta={self.steering_cmd:+.3f} rad",
+                    throttle_duration_sec=0.5,
+                )
                 #########################################################
 
             elif self.high_level_mode == 5:

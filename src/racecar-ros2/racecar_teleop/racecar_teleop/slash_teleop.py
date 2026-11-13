@@ -93,13 +93,6 @@ class Teleop(Node):
                 self.cmd_msg.angular.z = steering_user_input  # [m]
                 self.cmd_msg.linear.z = 3.0  # Control mode
 
-            # If button B is active
-            #elif joy_msg.buttons[2]:
-            #    # Closed-loop position, Closed-loop steering
-            #    self.cmd_msg.linear.x = propulsion_user_input  # [m]
-            #    self.cmd_msg.angular.z = steering_user_input  # [m]
-            #    self.cmd_msg.linear.z = 4.0  # Control mode
-
             # If button x is active
             elif joy_msg.buttons[0]:
                 # Autopilot at a fixed 2 m/s, zero lateral ref (same high-level mode as A)
@@ -107,12 +100,13 @@ class Teleop(Node):
                 self.cmd_msg.angular.z = 0.0  # [m]
                 self.cmd_msg.linear.z = 3.0  # Control mode
 
-            # If button y is active
+            # If button B is active
             elif joy_msg.buttons[2]:
-                # Reset Encoder
-                self.cmd_msg.linear.x = 0.0
-                self.cmd_msg.angular.z = 0.0
-                self.cmd_msg.linear.z = 6.0  # Control mode
+                # Asservissement en position (parking) : position cible fixe
+                # (faire le reset encodeurs avec la fleche haut/bas avant)
+                self.cmd_msg.linear.x = 1.0  # position cible [m] - a ajuster
+                self.cmd_msg.angular.z = 0.0  # position laterale cible [m]
+                self.cmd_msg.linear.z = 4.0  # Control mode (parking)
 
             # If left trigger is active
             elif joy_msg.buttons[6]:
@@ -148,10 +142,10 @@ class Teleop(Node):
 
             # If top - bottom arrow is active
             elif(joy_msg.axes[5]):
-                # Parking : position cible fixe (faire le reset encodeurs avant)
-                self.cmd_msg.linear.x  = 1.0  # position cible [m] - a ajuster
-                self.cmd_msg.angular.z = 0.0  # position laterale cible [m]
-                self.cmd_msg.linear.z  = 4.0  # Control mode (parking)
+                # Reset Encoder
+                self.cmd_msg.linear.x  = 0.0
+                self.cmd_msg.angular.z = 0.0
+                self.cmd_msg.linear.z  = 6.0  # Control mode
 
 
 

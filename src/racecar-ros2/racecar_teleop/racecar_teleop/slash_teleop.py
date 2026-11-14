@@ -104,7 +104,7 @@ class Teleop(Node):
             elif joy_msg.buttons[2]:
                 # Asservissement en position (parking) : position cible fixe
                 # (faire le reset encodeurs avec la fleche haut/bas avant)
-                self.cmd_msg.linear.x = 1.0  # position cible [m] - a ajuster
+                self.cmd_msg.linear.x = 2.0  # position cible [m] - a ajuster
                 self.cmd_msg.angular.z = 0.0  # position laterale cible [m]
                 self.cmd_msg.linear.z = 4.0  # Control mode (parking)
 

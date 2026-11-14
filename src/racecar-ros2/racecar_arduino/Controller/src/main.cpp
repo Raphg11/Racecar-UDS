@@ -63,7 +63,7 @@ const float vel_filter_omega = 7.0f;
 
 // Pour APP4
 const float vel_k2 = 8.242f;
-const float vel_ubar = 1.945f;
+const float vel_ubar = 3.89f;
 
 // Comparison targets [us]
 const unsigned long period_ctl_us      = 2000;    // 500 Hz internal PID loop

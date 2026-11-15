@@ -44,11 +44,24 @@ class SlashController(Node):
         self.theta_sign = -1.0
         self.max_steering = 0.52  # [rad] ~30 deg, saturation du servo sur l'Arduino
 
+        # Amelioration 1.4.3 : action integrale sur y (auto-pilote, mode 3)
+        # Activable EN DIRECT pour comparer avec / sans :
+        #   ros2 param set /controller use_integral true
+        self.declare_parameter("use_integral", False)
+        self.use_integral = False
+
         # TODO: test on real racecar to validate
         # Design offline, paste here. Shapes must match the x you assemble below.
         self.params_autopilot = {
             "K": np.array([0.316, 0.538]),
             "ubar": 0.0
+        }
+        # LQR augmente x_a = [y, theta, z], z = integrale de (y - y_ref)
+        # (meme Q que le mandat + poids 0.5 sur z) -> PID : Kp=0.490, Kd=0.314, Ki=0.224
+        self.params_autopilot_I = {
+            "K": np.array([0.490, 0.628, 0.224]),
+            "z_max": 0.5,   # [m.s] limite de l'integrateur (compense jusqu'a ~6 deg de biais)
+            "v_min": 0.3,   # [m/s] on n'integre pas si l'auto est (presque) arretee
         }
         self.params_parking = {
             "K": np.array([[1.0,0.0,0.0],
@@ -77,6 +90,9 @@ class SlashController(Node):
         self.laser_y_old = 0
         self.laser_dy_fill = 0
 
+        # Integrateur de l'auto-pilote (z = integrale de l'erreur laterale)
+        self.z_y = 0.0
+
     #######################################
     def timed_controller(self):
 
@@ -84,6 +100,11 @@ class SlashController(Node):
         self.steering_offset = self.get_parameter("steering_offset").value
         self.y_sign = self.get_parameter("y_sign").value
         self.theta_sign = self.get_parameter("theta_sign").value
+        self.use_integral = self.get_parameter("use_integral").value
+
+        # Integrateur remis a zero hors du mode auto-pilote (repart de 0 a chaque activation)
+        if self.high_level_mode != 3:
+            self.z_y = 0.0
 
         # Computation of dy / dt with filtering
         self.laser_dy_fill = (
@@ -180,8 +201,13 @@ class SlashController(Node):
                 ])
 
                 # 2. Calcul du braquage delta_desire (K1 * x1)
-                delta_desire = float(np.clip(self.ctl_autopilot(x1, r1),
-                                             -self.max_steering, self.max_steering))
+                if self.use_integral:
+                    # Amelioration : LQR + action integrale sur y
+                    delta_desire = self.ctl_autopilot_I(x1, r1)
+                else:
+                    # LQR du mandat (PD sur y)
+                    delta_desire = float(np.clip(self.ctl_autopilot(x1, r1),
+                                                 -self.max_steering, self.max_steering))
 
                 # 3. Trajet direct de vd vers l'Arduino (ligne pointillée)
                 self.propulsion_cmd = self.propulsion_ref  # vd (ex: 2.0 m/s)
@@ -193,7 +219,8 @@ class SlashController(Node):
                 # Debug (2x par seconde) pour valider les signes
                 self.get_logger().info(
                     f"[autopilot] y={x1[0]:+.3f} m  theta={x1[1]:+.3f} rad  "
-                    f"delta={delta_desire:+.3f} rad  v={self.velocity:.2f} m/s",
+                    f"delta={delta_desire:+.3f} rad  v={self.velocity:.2f} m/s  "
+                    f"I={'on' if self.use_integral else 'off'} z={self.z_y:+.3f}",
                     throttle_duration_sec=0.5,
                 )
                 #########################################################
@@ -274,6 +301,27 @@ class SlashController(Node):
         u = ubar - np.dot(K, (x - r))
 
         return u
+
+    #######################################
+    def ctl_autopilot_I(self, x, r, params=None):
+        """LQR + action integrale sur y. x = [y, theta], r = [y_ref, 0]. Retourne delta sature."""
+
+        params = self.params_autopilot_I if params is None else params
+
+        K = params["K"]
+        e = x - r                                   # [e_y, theta]
+        x_a = np.array([e[0], e[1], self.z_y])      # [e_y, theta, z]
+        delta_brut = float(-np.dot(K, x_a))
+        delta = float(np.clip(delta_brut, -self.max_steering, self.max_steering))
+
+        # Anti-windup : on integre seulement si
+        #  - la direction n'est pas en butee (sinon z grossit pour rien)
+        #  - l'auto roule (a v ~ 0 la direction n'a aucun effet sur y)
+        if delta == delta_brut and abs(self.velocity) > params["v_min"]:
+            self.z_y = float(np.clip(self.z_y + e[0] * self.dt,
+                                     -params["z_max"], params["z_max"]))
+
+        return delta
 
     #######################################
     def ctl_parking(self, x, r, t=0, params=None):

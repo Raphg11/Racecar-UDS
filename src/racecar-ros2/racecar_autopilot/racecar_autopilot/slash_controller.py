@@ -56,6 +56,8 @@ class SlashController(Node):
         self.use_kalman = False
 
         # Matrices linearisees autour de v0 = 2.0 m/s (tau = 3.0, g0 = 0.43, l = 0.3)
+        self.v0_kalman = 2.0
+        self.g0_kalman = 0.43
         self.A_kalman = np.array([
             [-1.0 / 3.0, 0.0, 0.0],
             [0.0,        0.0, 2.0],
@@ -70,13 +72,14 @@ class SlashController(Node):
             [1.0, 0.0, 0.0],
             [0.0, 1.0, 0.0]
         ])
-        # Gain optimal L (3x2) issu de ct.lqe(A, G, C, Qw, Rv)
+        # Gain optimal L (3x2) issu de ct.lqe(A, G, C, Qw, Rv) dans sim_kalman.py
         self.L_kalman = np.array([
-            [1.3672, 0.0000],
-            [0.0000, 1.3189],
-            [0.0000, 0.8700]
+            [1.3663, 0.0000],
+            [0.0000, 3.6488],
+            [0.0000, 2.8284]
         ])
-        self.x_hat = np.array([2.0, 0.0, 0.0])  # Etat estime [v_hat, y_hat, theta_hat]
+        self.x_hat = np.array([0.0, 0.0, 0.0])  # Etat estime [v_hat, y_hat, theta_hat]
+        self.last_delta = 0.0                   # Dernier braquage delta (sans steering_offset)
         # TODO: test on real racecar to validate
         # Design offline, paste here. Shapes must match the x you assemble below.
         self.params_autopilot = {
@@ -131,9 +134,16 @@ class SlashController(Node):
         self.use_kalman = self.get_parameter("use_kalman").value
 
 
-        # Integrateur remis a zero hors du mode auto-pilote (repart de 0 a chaque activation)
+        # Integrateur et filtre de Kalman remis a zero / synchronises hors du mode auto-pilote
         if self.high_level_mode != 3:
             self.z_y = 0.0
+            self.last_delta = 0.0
+        if self.high_level_mode != 3 or not self.use_kalman:
+            self.x_hat = np.array([
+                float(self.velocity),
+                float(self.y_sign * self.laser_y),
+                float(self.theta_sign * self.laser_theta),
+            ])
 
         # Computation of dy / dt with filtering
         self.laser_dy_fill = (
@@ -227,15 +237,21 @@ class SlashController(Node):
 
                 # Estimation par Filtre de Kalman (reconstruit [v_hat, y_hat, theta_hat])
                 if self.use_kalman:
-                    # Reconstruction de la tension V appliquee par l'Arduino en mode 5
-                    v_d = self.propulsion_ref if self.propulsion_ref != 0 else 2.0
-                    V_0 = v_d / 0.43
-                    V_est = np.clip(3.89 + 8.242 * (v_d - self.velocity), -8.0, 8.0)
+                    # Point d'operation de la linearisation (v0 = 2.0 m/s)
+                    v_0 = self.v0_kalman
+                    V_0 = v_0 / self.g0_kalman
 
-                    # Vecteurs d'ecarts autour du point d'operation (v_d, y=0, theta=0)
-                    x_tilde = np.array([self.x_hat[0] - v_d, self.x_hat[1], self.x_hat[2]])
-                    y_tilde = np.array([y_mes[0] - v_d, y_mes[1]])
-                    u_tilde = np.array([V_est - V_0, self.steering_cmd])
+                    # Reconstruction de la tension V appliquee par l'Arduino en mode 5
+                    V_est = np.clip(
+                        3.89 + 8.242 * (self.propulsion_ref - self.velocity),
+                        -8.0,
+                        8.0,
+                    )
+
+                    # Vecteurs d'ecarts autour du point d'operation (v0, y=0, theta=0)
+                    x_tilde = np.array([self.x_hat[0] - v_0, self.x_hat[1], self.x_hat[2]])
+                    y_tilde = np.array([y_mes[0] - v_0, y_mes[1]])
+                    u_tilde = np.array([V_est - V_0, self.last_delta])
 
                     dx_hat = (
                         self.A_kalman @ x_tilde
@@ -268,6 +284,9 @@ class SlashController(Node):
                     delta_desire = float(np.clip(self.ctl_autopilot(x1, r1),
                                                  -self.max_steering, self.max_steering))
 
+                # Memorise delta_desire (sans offset mecanique) pour la prochaine iteration Kalman
+                self.last_delta = delta_desire
+
                 # 3. Trajet direct de vd vers l'Arduino (ligne pointillée)
                 self.propulsion_cmd = self.propulsion_ref  # vd (ex: 2.0 m/s)
                 self.steering_cmd = delta_desire + self.steering_offset
@@ -279,6 +298,7 @@ class SlashController(Node):
                 self.get_logger().info(
                     f"[autopilot] y={x1[0]:+.3f} m  theta={x1[1]:+.3f} rad  "
                     f"delta={delta_desire:+.3f} rad  v={self.velocity:.2f} m/s  "
+                    f"K={'on' if self.use_kalman else 'off'} "
                     f"I={'on' if self.use_integral else 'off'} z={self.z_y:+.3f}",
                     throttle_duration_sec=0.5,
                 )

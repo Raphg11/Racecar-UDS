@@ -51,7 +51,7 @@ print(repr(np.round(L, 4)))
 print("Pôles de l'observateur :", np.round(poles_obs, 3))
 
 # =====================================================================
-# 4. SIMULATION NON-LINÉAIRE : SANS KALMAN vs AVEC KALMAN
+# 4. SIMULATION NON-LINÉAIRE : CONTRÔLEUR LQR + FILTRE DE KALMAN
 # =====================================================================
 np.random.seed(42)
 t_eval = np.arange(0, 6.0, dt)
@@ -112,28 +112,32 @@ axes[0, 0].plot(t_eval, hist_mes[:, 0], '.', color='silver', label='Mesure bruit
 axes[0, 0].plot(t_eval, hist_reel[:, 0], 'k--', linewidth=1.5, label='Vitesse réelle v')
 axes[0, 0].plot(t_eval, hist_hat[:, 0], 'b-', linewidth=2, label='Estimée Kalman v_hat')
 axes[0, 0].set_title("1. Vitesse v (m/s) — Filtrage encodeur")
-axes[0, 0].legend(); axes[0, 0].grid(True)
+axes[0, 0].legend()
+axes[0, 0].grid(True)
 
 # 2. Position latérale y (mesurée par LiDAR)
 axes[0, 1].plot(t_eval, hist_mes[:, 1], '.', color='silver', label='Mesure bruitée (LiDAR)')
 axes[0, 1].plot(t_eval, hist_reel[:, 1], 'k--', linewidth=1.5, label='Position réelle y')
 axes[0, 1].plot(t_eval, hist_hat[:, 1], 'g-', linewidth=2, label='Estimée Kalman y_hat')
 axes[0, 1].set_title("2. Position latérale y (m) — Filtrage LiDAR")
-axes[0, 1].legend(); axes[0, 1].grid(True)
+axes[0, 1].legend()
+axes[0, 1].grid(True)
 
 # 3. Angle theta (NON MESURÉ — Reconstruit par l'observateur !)
 axes[1, 0].plot(t_eval, hist_reel[:, 2], 'k--', linewidth=1.5, label='Angle réel θ')
 axes[1, 0].plot(t_eval, hist_hat[:, 2], 'r-', linewidth=2, label='Reconstruit Kalman θ_hat (sans capteur)')
 axes[1, 0].set_title("3. Orientation θ (rad) — État caché reconstruit")
 axes[1, 0].set_xlabel("Temps (s)")
-axes[1, 0].legend(); axes[1, 0].grid(True)
+axes[1, 0].legend()
+axes[1, 0].grid(True)
 
 # 4. Commandes u = [V, delta]
 axes[1, 1].plot(t_eval, hist_u[:, 0], 'b-', label='Voltage moteur V (V)')
 axes[1, 1].plot(t_eval, hist_u[:, 1] * 10, 'g-', label='Braquage δ × 10 (rad)')
 axes[1, 1].set_title("4. Commandes LQR issues de l'état filtré")
 axes[1, 1].set_xlabel("Temps (s)")
-axes[1, 1].legend(); axes[1, 1].grid(True)
+axes[1, 1].legend()
+axes[1, 1].grid(True)
 
 plt.tight_layout()
 plt.show()

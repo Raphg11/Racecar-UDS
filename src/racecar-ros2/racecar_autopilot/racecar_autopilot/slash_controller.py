@@ -58,8 +58,8 @@ class SlashController(Node):
         self.y_int = 0.0        # int(y - y_ref) dt  [m.s]
         self.y_int_max = 1.0    # anti-windup : |k_z * int(y)| <= 0.17 rad
         self.params_parking = {
-            "K": np.array([[1.0,0.0,0.0],
-                           [0.0,0.375,0.6]])
+            "K": np.array([[1.0,0.1,0.1],
+                           [0.1,1.04,1.0]])
         }
 
         # Memory

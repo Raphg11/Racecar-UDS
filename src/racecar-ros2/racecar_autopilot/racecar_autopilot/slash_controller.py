@@ -50,6 +50,13 @@ class SlashController(Node):
             "K": np.array([0.316, 0.538]),
             "ubar": 0.0
         }
+        # Auto-pilote avec action integrale sur y : x = [y, theta, int(y) dt]
+        # LQR augmente : Q = diag(1, 1, 0.3), R = 10, v_bar = 2 m/s, L = 0.30 m
+        self.params_autopilot_int = {
+            "K": np.array([0.453, 0.610, 0.173])
+        }
+        self.y_int = 0.0        # int(y - y_ref) dt  [m.s]
+        self.y_int_max = 1.0    # anti-windup : |k_z * int(y)| <= 0.17 rad
         self.params_parking = {
             "K": np.array([[1.0,0.0,0.0],
                            [0.0,0.375,0.6]])
@@ -84,6 +91,10 @@ class SlashController(Node):
         self.steering_offset = self.get_parameter("steering_offset").value
         self.y_sign = self.get_parameter("y_sign").value
         self.theta_sign = self.get_parameter("theta_sign").value
+
+        # L'integrale de l'auto-pilote repart de zero a chaque nouvel essai
+        if self.high_level_mode != 3:
+            self.y_int = 0.0
 
         # Computation of dy / dt with filtering
         self.laser_dy_fill = (
@@ -179,9 +190,18 @@ class SlashController(Node):
                     0.0                 # theta_d = 0 (parallèle au mur)
                 ])
 
-                # 2. Calcul du braquage delta_desire (K1 * x1)
-                delta_desire = float(np.clip(self.ctl_autopilot(x1, r1),
-                                             -self.max_steering, self.max_steering))
+                # 2. Calcul du braquage avec action integrale sur y
+                #    delta = -(k_y * e_y + k_theta * theta + k_z * int(e_y) dt)
+                e_y = x1[0] - r1[0]
+                K_int = self.params_autopilot_int["K"]
+                delta = -(K_int[0] * e_y + K_int[1] * x1[1] + K_int[2] * self.y_int)
+                delta_desire = float(np.clip(delta, -self.max_steering, self.max_steering))
+
+                # Anti-windup : on n'integre pas si la direction sature,
+                # ni a l'arret (y n'est pas commandable quand v ~ 0)
+                if delta_desire == delta and self.velocity > 0.3:
+                    self.y_int = float(np.clip(self.y_int + e_y * self.dt,
+                                               -self.y_int_max, self.y_int_max))
 
                 # 3. Trajet direct de vd vers l'Arduino (ligne pointillée)
                 self.propulsion_cmd = self.propulsion_ref  # vd (ex: 2.0 m/s)
@@ -193,7 +213,8 @@ class SlashController(Node):
                 # Debug (2x par seconde) pour valider les signes
                 self.get_logger().info(
                     f"[autopilot] y={x1[0]:+.3f} m  theta={x1[1]:+.3f} rad  "
-                    f"delta={delta_desire:+.3f} rad  v={self.velocity:.2f} m/s",
+                    f"int_y={self.y_int:+.3f}  delta={delta_desire:+.3f} rad  "
+                    f"v={self.velocity:.2f} m/s",
                     throttle_duration_sec=0.5,
                 )
                 #########################################################

@@ -65,7 +65,7 @@ class SlashController(Node):
         }
         self.params_parking = {
             "K": np.array([[1.0,0.0,0.0],
-                           [0.0,0.375,0.6]])
+                           [0.0,3.162,1.702]])
         }
 
         # Memory

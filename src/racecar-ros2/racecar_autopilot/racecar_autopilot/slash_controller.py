@@ -87,10 +87,10 @@ class SlashController(Node):
             "ubar": 0.0
         }
         # LQR augmente x_a = [y, theta, z], z = integrale de (y - y_ref)
-        # (meme Q que le mandat + poids 0.5 sur z) -> PID : Kp=0.490, Kd=0.314, Ki=0.224
+        # Gains valides sur MainV3 : Q = diag(1, 1, 0.3), R = 10, v0 = 2.0 m/s, l = 0.30 m
         self.params_autopilot_I = {
-            "K": np.array([0.490, 0.628, 0.224]),
-            "z_max": 0.5,   # [m.s] limite de l'integrateur (compense jusqu'a ~6 deg de biais)
+            "K": np.array([0.453, 0.610, 0.173]),
+            "z_max": 1.0,   # [m.s] limite anti-windup (|k_z * z_y| <= 0.173 rad ~10 deg)
             "v_min": 0.3,   # [m/s] on n'integre pas si l'auto est (presque) arretee
         }
         self.params_parking = {

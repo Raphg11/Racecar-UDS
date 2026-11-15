@@ -3,125 +3,137 @@ import control as ct
 import matplotlib.pyplot as plt
 
 # =====================================================================
-# 1. PARAMÈTRES EXACTS DE TON PROJET (main.cpp & slash_controller.py)
+# 1. PARAMÈTRES ET MODÈLE COMPLET À 3 ÉTATS : x = [v, y, theta]^T
 # =====================================================================
 g0, tau, l = 0.43, 3.0, 0.3
 v_d = 2.0               # Vitesse désirée [m/s]
-dt = 0.05               # 20 Hz (self.dt dans slash_controller.py)
+V_0 = v_d / g0          # Voltage d'équilibre (~4.65 V)
+dt = 0.05               # Pas de temps [s]
 
-# Paramètres Arduino (ctl_mode == 5 dans main.cpp)
-vel_k2 = 8.242
-vel_ubar = 3.89
-
-# Gain LQR direction déjà dans ton slash_controller.py
-K_dir = np.array([0.316, 0.538])
-max_steering = 0.52     # [rad]
-
-# =====================================================================
-# 2. SYNTHÈSE DU FILTRE DE KALMAN (LQE) POUR L'ÉTAT LATÉRAL x = [y, theta]
-# =====================================================================
 A = np.array([
-    [0.0, v_d],
-    [0.0, 0.0]
+    [-1/tau, 0.0, 0.0],
+    [0.0,    0.0, v_d],
+    [0.0,    0.0, 0.0]
 ])
 B = np.array([
-    [0.0],
-    [v_d / l]
+    [g0/tau, 0.0  ],
+    [0.0,    0.0  ],
+    [0.0,    v_d/l]
 ])
-C = np.eye(2)           # Mesures LiDAR : y_mes = [laser_y, laser_theta]
+# C (2x3) : On mesure UNIQUEMENT v (encodeur) et y (LiDAR). Theta n'est pas mesuré !
+C = np.array([
+    [1.0, 0.0, 0.0],
+    [0.0, 1.0, 0.0]
+])
 
-# Bruit de mesure LiDAR estimé (écart-type : 5 cm sur y, 0.08 rad (~4.5°) sur theta)
-sigma_y = 0.05
-sigma_theta = 0.08
-Rv = np.diag([sigma_y**2, sigma_theta**2])
+# =====================================================================
+# 2. SYNTHÈSE DU CONTRÔLEUR LQR (Section 1.4.1)
+# =====================================================================
+Q_lqr = np.diag([100.0, 1.0, 1.0])
+R_lqr = np.diag([1.0, 10.0])
+K, _, _ = ct.lqr(A, B, Q_lqr, R_lqr)
 
-# Incertitude sur le modèle cinématique (glissement, variation de vitesse)
-G = np.eye(2)
-Qw = np.diag([0.005, 0.02])
+# =====================================================================
+# 3. SYNTHÈSE DU FILTRE DE KALMAN LQE (Section 1.4.4)
+# =====================================================================
+# Bruit de mesure capteurs : sigma_v = 0.12 m/s (encodeur), sigma_y = 0.05 m (LiDAR)
+sigma_v, sigma_y = 0.12, 0.05
+Rv = np.diag([sigma_v**2, sigma_y**2])
 
-# Calcul du gain optimal L (2x2)
+# Incertitude sur le modèle [v, y, theta]
+G = np.eye(3)
+Qw = np.diag([0.04, 0.005, 0.02])
+
+# Calcul du gain optimal L (taille 3x2)
 L, P, poles_obs = ct.lqe(A, G, C, Qw, Rv)
-print("Matrice de gain de Kalman L (à copier dans slash_controller.py) :")
+print("Matrice de gain de Kalman L (3x2) :")
 print(repr(np.round(L, 4)))
 print("Pôles de l'observateur :", np.round(poles_obs, 3))
 
 # =====================================================================
-# 3. SIMULATION COMPARATIVE : SANS KALMAN vs AVEC KALMAN
+# 4. SIMULATION NON-LINÉAIRE : SANS KALMAN vs AVEC KALMAN
 # =====================================================================
-def run_sim(use_kalman=True):
-    np.random.seed(42)  # Même bruit pour comparer équitablement
-    t_eval = np.arange(0, 6.0, dt)
-    N = len(t_eval)
+np.random.seed(42)
+t_eval = np.arange(0, 6.0, dt)
+N = len(t_eval)
 
-    # État vrai : [v, y, theta] (départ décalé de 0.4 m et 0.15 rad)
-    v_reel, y_reel, theta_reel = 1.5, 0.40, 0.15
-    x_hat = np.array([0.40, 0.15])  # Estimation initiale [y_hat, theta_hat]
+# État réel initial : [v, y, theta]
+x_reel = np.array([1.4, 0.45, 0.20])
+# État estimé initial : theta est inconnu au départ -> initialisé à 0.0
+x_hat  = np.array([1.4, 0.45, 0.00])
 
-    hist_reel = np.zeros((N, 2))
-    hist_mes  = np.zeros((N, 2))
-    hist_hat  = np.zeros((N, 2))
-    hist_cmd  = np.zeros(N)
+hist_reel = np.zeros((N, 3))
+hist_mes  = np.zeros((N, 2))
+hist_hat  = np.zeros((N, 3))
+hist_u    = np.zeros((N, 2))
 
-    for k in range(N):
-        # 1. Lecture LiDAR bruitée
-        y_mes = np.array([
-            y_reel + np.random.normal(0, sigma_y),
-            theta_reel + np.random.normal(0, sigma_theta)
-        ])
+for k in range(N):
+    # 1. Mesures capteurs bruitées : y_mes = [v_enc, y_lidar]^T
+    y_mes = C @ x_reel + np.array([
+        np.random.normal(0, sigma_v),
+        np.random.normal(0, sigma_y)
+    ])
 
-        # 2. Choix du vecteur utilisé par le contrôleur
-        x_ctrl = x_hat if use_kalman else y_mes
+    hist_reel[k] = x_reel
+    hist_mes[k]  = y_mes
+    hist_hat[k]  = x_hat
 
-        # 3. Loi de commande direction (identique à ctl_autopilot)
-        delta_cmd = float(np.clip(-np.dot(K_dir, x_ctrl), -max_steering, max_steering))
+    # 2. Commande LQR basée sur l'état estimé x_hat = [v_hat, y_hat, theta_hat]^T
+    x_tilde_hat = np.array([x_hat[0] - v_d, x_hat[1], x_hat[2]])
+    u_tilde = -K @ x_tilde_hat
 
-        # Sauvegarde
-        hist_reel[k] = [y_reel, theta_reel]
-        hist_mes[k]  = y_mes
-        hist_hat[k]  = x_hat
-        hist_cmd[k]  = delta_cmd
+    V     = float(np.clip(V_0 + u_tilde[0], -8.0, 8.0))
+    delta = float(np.clip(u_tilde[1], -0.52, 0.52))
+    hist_u[k] = [V, delta]
 
-        # 4. Mise à jour du Filtre de Kalman (Euler à pas dt = 0.05 s)
-        dx_hat = A @ x_hat + B.flatten() * delta_cmd + L @ (y_mes - C @ x_hat)
-        x_hat = x_hat + dt * dx_hat
+    # 3. Mise à jour du Filtre de Kalman (Euler)
+    y_tilde_mes = np.array([y_mes[0] - v_d, y_mes[1]])
+    x_tilde_curr = np.array([x_hat[0] - v_d, x_hat[1], x_hat[2]])
+    u_tilde_sat = np.array([V - V_0, delta])
 
-        # 5. Simulation physique NON-LINÉAIRE (Arduino mode 5 + cinématique)
-        V_mot = np.clip(vel_ubar + vel_k2 * (v_d - v_reel), -8.0, 8.0)
-        v_reel     += dt * ((g0 * V_mot - v_reel) / tau)
-        y_reel     += dt * (v_reel * np.sin(theta_reel))
-        theta_reel += dt * ((v_reel / l) * np.tan(delta_cmd))
+    dx_hat = A @ x_tilde_curr + B @ u_tilde_sat + L @ (y_tilde_mes - C @ x_tilde_curr)
+    x_hat = x_hat + dt * dx_hat
 
-    return t_eval, hist_reel, hist_mes, hist_hat, hist_cmd
-
-t, reel_sans, mes_sans, _, cmd_sans = run_sim(use_kalman=False)
-t, reel_avec, mes_avec, hat_avec, cmd_avec = run_sim(use_kalman=True)
+    # 4. Évolution physique NON-LINÉAIRE du véhicule
+    v, y, theta = x_reel
+    x_reel = x_reel + dt * np.array([
+        (g0 * V - v) / tau,
+        v * np.sin(theta),
+        (v / l) * np.tan(delta)
+    ])
 
 # =====================================================================
-# 4. GRAPHIQUES POUR TON POWERPOINT (SECTION 1.4.4)
+# 5. GRAPHIQUES DE VALIDATION (2x2)
 # =====================================================================
-fig, axes = plt.subplots(3, 1, figsize=(11, 9), sharex=True)
+fig, axes = plt.subplots(2, 2, figsize=(12, 8))
 
-# Position latérale y
-axes[0].plot(t, mes_avec[:, 0], '.', color='silver', label='Mesure LiDAR bruitée')
-axes[0].plot(t, reel_avec[:, 0], 'k--', linewidth=1.5, label='Position réelle y')
-axes[0].plot(t, hat_avec[:, 0], 'b-', linewidth=2, label='Estimée Kalman y_hat')
-axes[0].set_ylabel("Position y (m)")
-axes[0].set_title("Validation du Filtre de Kalman (Auto-pilote Option #2)")
-axes[0].legend(); axes[0].grid(True)
+# 1. Vitesse v (mesurée par encodeur)
+axes[0, 0].plot(t_eval, hist_mes[:, 0], '.', color='silver', label='Mesure bruitée (Encodeur)')
+axes[0, 0].plot(t_eval, hist_reel[:, 0], 'k--', linewidth=1.5, label='Vitesse réelle v')
+axes[0, 0].plot(t_eval, hist_hat[:, 0], 'b-', linewidth=2, label='Estimée Kalman v_hat')
+axes[0, 0].set_title("1. Vitesse v (m/s) — Filtrage encodeur")
+axes[0, 0].legend(); axes[0, 0].grid(True)
 
-# Orientation theta
-axes[1].plot(t, mes_avec[:, 1], '.', color='silver', label='Mesure LiDAR bruitée')
-axes[1].plot(t, reel_avec[:, 1], 'k--', linewidth=1.5, label='Angle réel θ')
-axes[1].plot(t, hat_avec[:, 1], 'g-', linewidth=2, label='Estimé Kalman θ_hat')
-axes[1].set_ylabel("Angle θ (rad)")
-axes[1].legend(); axes[1].grid(True)
+# 2. Position latérale y (mesurée par LiDAR)
+axes[0, 1].plot(t_eval, hist_mes[:, 1], '.', color='silver', label='Mesure bruitée (LiDAR)')
+axes[0, 1].plot(t_eval, hist_reel[:, 1], 'k--', linewidth=1.5, label='Position réelle y')
+axes[0, 1].plot(t_eval, hist_hat[:, 1], 'g-', linewidth=2, label='Estimée Kalman y_hat')
+axes[0, 1].set_title("2. Position latérale y (m) — Filtrage LiDAR")
+axes[0, 1].legend(); axes[0, 1].grid(True)
 
-# Commande de braquage delta (l'impact concret sur le servomoteur !)
-axes[2].plot(t, cmd_sans, color='salmon', alpha=0.8, label='Commande δ SANS Kalman (vibrations servo)')
-axes[2].plot(t, cmd_avec, 'b-', linewidth=2, label='Commande δ AVEC Kalman (lisse)')
-axes[2].set_ylabel("Braquage δ (rad)")
-axes[2].set_xlabel("Temps (s)")
-axes[2].legend(); axes[2].grid(True)
+# 3. Angle theta (NON MESURÉ — Reconstruit par l'observateur !)
+axes[1, 0].plot(t_eval, hist_reel[:, 2], 'k--', linewidth=1.5, label='Angle réel θ')
+axes[1, 0].plot(t_eval, hist_hat[:, 2], 'r-', linewidth=2, label='Reconstruit Kalman θ_hat (sans capteur)')
+axes[1, 0].set_title("3. Orientation θ (rad) — État caché reconstruit")
+axes[1, 0].set_xlabel("Temps (s)")
+axes[1, 0].legend(); axes[1, 0].grid(True)
+
+# 4. Commandes u = [V, delta]
+axes[1, 1].plot(t_eval, hist_u[:, 0], 'b-', label='Voltage moteur V (V)')
+axes[1, 1].plot(t_eval, hist_u[:, 1] * 10, 'g-', label='Braquage δ × 10 (rad)')
+axes[1, 1].set_title("4. Commandes LQR issues de l'état filtré")
+axes[1, 1].set_xlabel("Temps (s)")
+axes[1, 1].legend(); axes[1, 1].grid(True)
 
 plt.tight_layout()
 plt.show()

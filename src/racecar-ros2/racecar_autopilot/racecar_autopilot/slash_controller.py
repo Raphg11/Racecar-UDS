@@ -50,6 +50,33 @@ class SlashController(Node):
         self.declare_parameter("use_integral", False)
         self.use_integral = False
 
+        # filtre de Kalman sur x = [v, y, theta]^T
+        # Activable en direct : ros2 param set /controller use_kalman true
+        self.declare_parameter("use_kalman", False)
+        self.use_kalman = False
+
+        # Matrices linearisees autour de v0 = 2.0 m/s (tau = 3.0, g0 = 0.43, l = 0.3)
+        self.A_kalman = np.array([
+            [-1.0 / 3.0, 0.0, 0.0],
+            [0.0,        0.0, 2.0],
+            [0.0,        0.0, 0.0]
+        ])
+        self.B_kalman = np.array([
+            [0.43 / 3.0, 0.0      ],
+            [0.0,        0.0      ],
+            [0.0,        2.0 / 0.3]
+        ])
+        self.C_kalman = np.array([
+            [1.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0]
+        ])
+        # Gain optimal L (3x2) issu de ct.lqe(A, G, C, Qw, Rv)
+        self.L_kalman = np.array([
+            [1.3672, 0.0000],
+            [0.0000, 1.3189],
+            [0.0000, 0.8700]
+        ])
+        self.x_hat = np.array([2.0, 0.0, 0.0])  # Etat estime [v_hat, y_hat, theta_hat]
         # TODO: test on real racecar to validate
         # Design offline, paste here. Shapes must match the x you assemble below.
         self.params_autopilot = {
@@ -101,6 +128,8 @@ class SlashController(Node):
         self.y_sign = self.get_parameter("y_sign").value
         self.theta_sign = self.get_parameter("theta_sign").value
         self.use_integral = self.get_parameter("use_integral").value
+        self.use_kalman = self.get_parameter("use_kalman").value
+
 
         # Integrateur remis a zero hors du mode auto-pilote (repart de 0 a chaque activation)
         if self.high_level_mode != 3:
@@ -190,11 +219,41 @@ class SlashController(Node):
                 
                 # Autopilot (Option #2)
 
-                # 1. États Lidar uniquement
-                x1 = np.array([
-                    self.y_sign * self.laser_y,
-                    self.theta_sign * self.laser_theta
+                # 1. Mesures capteurs brutes : y_mes = [v_enc, y_lidar]^T
+                y_mes = np.array([
+                    self.velocity,
+                    self.y_sign * self.laser_y
                 ])
+
+                # Estimation par Filtre de Kalman (reconstruit [v_hat, y_hat, theta_hat])
+                if self.use_kalman:
+                    # Reconstruction de la tension V appliquee par l'Arduino en mode 5
+                    v_d = self.propulsion_ref if self.propulsion_ref != 0 else 2.0
+                    V_0 = v_d / 0.43
+                    V_est = np.clip(3.89 + 8.242 * (v_d - self.velocity), -8.0, 8.0)
+
+                    # Vecteurs d'ecarts autour du point d'operation (v_d, y=0, theta=0)
+                    x_tilde = np.array([self.x_hat[0] - v_d, self.x_hat[1], self.x_hat[2]])
+                    y_tilde = np.array([y_mes[0] - v_d, y_mes[1]])
+                    u_tilde = np.array([V_est - V_0, self.steering_cmd])
+
+                    dx_hat = (
+                        self.A_kalman @ x_tilde
+                        + self.B_kalman @ u_tilde
+                        + self.L_kalman @ (y_tilde - self.C_kalman @ x_tilde)
+                    )
+                    self.x_hat = self.x_hat + self.dt * dx_hat
+                    x1 = np.array([self.x_hat[1], self.x_hat[2]])  # [y_hat, theta_hat]
+
+                else:
+
+                    # 1. États Lidar uniquement
+                    x1 = np.array([
+                        self.y_sign * self.laser_y,
+                        self.theta_sign * self.laser_theta
+                    ])
+
+
                 r1 = np.array([
                     self.steering_ref,  # yd (consigne latérale)
                     0.0                 # theta_d = 0 (parallèle au mur)

@@ -94,8 +94,8 @@ class SlashController(Node):
             "v_min": 0.3,   # [m/s] on n'integre pas si l'auto est (presque) arretee
         }
         self.params_parking = {
-            "K": np.array([[1.0,0.0,0.0],
-                           [0.0,3.162,1.702]])
+            "K": np.array([[0.44,0.0,0.0],
+                           [0.0,1.22,1.21]])
         }
 
         # Memory

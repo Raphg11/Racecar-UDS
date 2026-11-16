@@ -68,8 +68,8 @@ class SlashController(Node):
         #   Q = diag(1, 30, 1), R = diag(1, 1)  -> K independant de v0
         # Ancien gain (placement de poles a v0 = 1 m/s) : [[1, 0, 0], [0, 0.375, 0.6]]
         self.params_parking = {
-            "K": np.array([[1.0, 0.0,   0.0],
-                           [0.0, 5.477, 2.070]]),
+            "K": np.array([[0.44, 0.0,   0.0],
+                           [0.0, 1.20, 1.20]]),
             # Anti a-coups en fin de manoeuvre (frottement sec / stick-slip)
             "v_min": 0.15,       # [m/s] vitesse minimale tant que la cible n'est pas atteinte
             "tol_x": 0.02,       # [m] zone d'arrivee : arret franc a moins de 2 cm

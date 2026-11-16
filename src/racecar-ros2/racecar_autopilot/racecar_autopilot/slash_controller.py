@@ -50,36 +50,6 @@ class SlashController(Node):
         self.declare_parameter("use_integral", False)
         self.use_integral = False
 
-        # filtre de Kalman sur x = [v, y, theta]^T
-        # Activable en direct : ros2 param set /controller use_kalman true
-        self.declare_parameter("use_kalman", False)
-        self.use_kalman = False
-
-        # Matrices linearisees autour de v0 = 2.0 m/s (tau = 3.0, g0 = 0.43, l = 0.3)
-        self.v0_kalman = 2.0
-        self.g0_kalman = 0.43
-        self.A_kalman = np.array([
-            [-1.0 / 3.0, 0.0, 0.0],
-            [0.0,        0.0, 2.0],
-            [0.0,        0.0, 0.0]
-        ])
-        self.B_kalman = np.array([
-            [0.43 / 3.0, 0.0      ],
-            [0.0,        0.0      ],
-            [0.0,        2.0 / 0.3]
-        ])
-        self.C_kalman = np.array([
-            [1.0, 0.0, 0.0],
-            [0.0, 1.0, 0.0]
-        ])
-        # Gain optimal L (3x2) issu de ct.lqe(A, G, C, Qw, Rv) dans sim_kalman.py
-        self.L_kalman = np.array([
-            [1.3663, 0.0000],
-            [0.0000, 3.6488],
-            [0.0000, 2.8284]
-        ])
-        self.x_hat = np.array([0.0, 0.0, 0.0])  # Etat estime [v_hat, y_hat, theta_hat]
-        self.last_delta = 0.0                   # Dernier braquage delta (sans steering_offset)
         # TODO: test on real racecar to validate
         # Design offline, paste here. Shapes must match the x you assemble below.
         self.params_autopilot = {
@@ -87,15 +57,22 @@ class SlashController(Node):
             "ubar": 0.0
         }
         # LQR augmente x_a = [y, theta, z], z = integrale de (y - y_ref)
-        # Gains valides sur MainV3 : Q = diag(1, 1, 0.3), R = 10, v0 = 2.0 m/s, l = 0.30 m
+        # (meme Q que le mandat + poids 0.5 sur z) -> PID : Kp=0.490, Kd=0.314, Ki=0.224
         self.params_autopilot_I = {
-            "K": np.array([0.453, 0.610, 0.173]),
-            "z_max": 1.0,   # [m.s] limite anti-windup (|k_z * z_y| <= 0.173 rad ~10 deg)
+            "K": np.array([0.490, 0.628, 0.224]),
+            "z_max": 0.5,   # [m.s] limite de l'integrateur (compense jusqu'a ~6 deg de biais)
             "v_min": 0.3,   # [m/s] on n'integre pas si l'auto est (presque) arretee
         }
+        # Stationnement : gain par fonction cout (LQR) au lieu du placement de poles
+        #   J = int( (x-x_des)^2 + 30 y^2 + theta^2 + v_des^2 + delta^2 ) dt
+        #   Q = diag(1, 30, 1), R = diag(1, 1)  -> K independant de v0
+        # Ancien gain (placement de poles a v0 = 1 m/s) : [[1, 0, 0], [0, 0.375, 0.6]]
         self.params_parking = {
-            "K": np.array([[0.44,0.0,0.0],
-                           [0.0,1.22,1.21]])
+            "K": np.array([[1.0, 0.0,   0.0],
+                           [0.0, 5.477, 2.070]]),
+            # Anti a-coups en fin de manoeuvre (frottement sec / stick-slip)
+            "v_min": 0.15,       # [m/s] vitesse minimale tant que la cible n'est pas atteinte
+            "tol_x": 0.02,       # [m] zone d'arrivee : arret franc a moins de 2 cm
         }
 
         # Memory
@@ -123,6 +100,9 @@ class SlashController(Node):
         # Integrateur de l'auto-pilote (z = integrale de l'erreur laterale)
         self.z_y = 0.0
 
+        # Stationnement : vrai une fois la cible atteinte (reste arrete)
+        self.parking_arrive = False
+
     #######################################
     def timed_controller(self):
 
@@ -131,19 +111,13 @@ class SlashController(Node):
         self.y_sign = self.get_parameter("y_sign").value
         self.theta_sign = self.get_parameter("theta_sign").value
         self.use_integral = self.get_parameter("use_integral").value
-        self.use_kalman = self.get_parameter("use_kalman").value
 
-
-        # Integrateur et filtre de Kalman remis a zero / synchronises hors du mode auto-pilote
+        # Integrateur remis a zero hors du mode auto-pilote (repart de 0 a chaque activation)
         if self.high_level_mode != 3:
             self.z_y = 0.0
-            self.last_delta = 0.0
-        if self.high_level_mode != 3 or not self.use_kalman:
-            self.x_hat = np.array([
-                float(self.velocity),
-                float(self.y_sign * self.laser_y),
-                float(self.theta_sign * self.laser_theta),
-            ])
+        # Drapeau d'arrivee du stationnement remis a zero hors du mode 4
+        if self.high_level_mode != 4:
+            self.parking_arrive = False
 
         # Computation of dy / dt with filtering
         self.laser_dy_fill = (
@@ -229,47 +203,11 @@ class SlashController(Node):
                 
                 # Autopilot (Option #2)
 
-                # 1. Mesures capteurs brutes : y_mes = [v_enc, y_lidar]^T
-                y_mes = np.array([
-                    self.velocity,
-                    self.y_sign * self.laser_y
+                # 1. États Lidar uniquement
+                x1 = np.array([
+                    self.y_sign * self.laser_y,
+                    self.theta_sign * self.laser_theta
                 ])
-
-                # Estimation par Filtre de Kalman (reconstruit [v_hat, y_hat, theta_hat])
-                if self.use_kalman:
-                    # Point d'operation de la linearisation (v0 = 2.0 m/s)
-                    v_0 = self.v0_kalman
-                    V_0 = v_0 / self.g0_kalman
-
-                    # Reconstruction de la tension V appliquee par l'Arduino en mode 5
-                    V_est = np.clip(
-                        3.89 + 8.242 * (self.propulsion_ref - self.velocity),
-                        -8.0,
-                        8.0,
-                    )
-
-                    # Vecteurs d'ecarts autour du point d'operation (v0, y=0, theta=0)
-                    x_tilde = np.array([self.x_hat[0] - v_0, self.x_hat[1], self.x_hat[2]])
-                    y_tilde = np.array([y_mes[0] - v_0, y_mes[1]])
-                    u_tilde = np.array([V_est - V_0, self.last_delta])
-
-                    dx_hat = (
-                        self.A_kalman @ x_tilde
-                        + self.B_kalman @ u_tilde
-                        + self.L_kalman @ (y_tilde - self.C_kalman @ x_tilde)
-                    )
-                    self.x_hat = self.x_hat + self.dt * dx_hat
-                    x1 = np.array([self.x_hat[1], self.x_hat[2]])  # [y_hat, theta_hat]
-
-                else:
-
-                    # 1. États Lidar uniquement
-                    x1 = np.array([
-                        self.y_sign * self.laser_y,
-                        self.theta_sign * self.laser_theta
-                    ])
-
-
                 r1 = np.array([
                     self.steering_ref,  # yd (consigne latérale)
                     0.0                 # theta_d = 0 (parallèle au mur)
@@ -284,9 +222,6 @@ class SlashController(Node):
                     delta_desire = float(np.clip(self.ctl_autopilot(x1, r1),
                                                  -self.max_steering, self.max_steering))
 
-                # Memorise delta_desire (sans offset mecanique) pour la prochaine iteration Kalman
-                self.last_delta = delta_desire
-
                 # 3. Trajet direct de vd vers l'Arduino (ligne pointillée)
                 self.propulsion_cmd = self.propulsion_ref  # vd (ex: 2.0 m/s)
                 self.steering_cmd = delta_desire + self.steering_offset
@@ -298,7 +233,6 @@ class SlashController(Node):
                 self.get_logger().info(
                     f"[autopilot] y={x1[0]:+.3f} m  theta={x1[1]:+.3f} rad  "
                     f"delta={delta_desire:+.3f} rad  v={self.velocity:.2f} m/s  "
-                    f"K={'on' if self.use_kalman else 'off'} "
                     f"I={'on' if self.use_integral else 'off'} z={self.z_y:+.3f}",
                     throttle_duration_sec=0.5,
                 )
@@ -322,7 +256,19 @@ class SlashController(Node):
                 u = self.ctl_parking(x, r)  # u = -K (x - r)
 
                 # u[0] = consigne de vitesse [m/s] (limitee), u[1] = braquage [rad]
-                self.propulsion_cmd = float(np.clip(u[0, 0], -1.0, 1.0))
+                v_des = float(np.clip(u[0, 0], -1.0, 1.0))
+                e_x = self.position - self.propulsion_ref        # erreur de position [m]
+                p = self.params_parking
+
+                if self.parking_arrive or abs(e_x) < p["tol_x"]:
+                    # Arrive (zone de tolerance) : arret franc, on reste arrete
+                    self.parking_arrive = True
+                    v_des = 0.0
+                elif abs(v_des) < p["v_min"]:
+                    # Vitesse minimale pour vaincre le frottement sec (evite les a-coups)
+                    v_des = p["v_min"] * float(np.sign(v_des))
+
+                self.propulsion_cmd = v_des
                 self.steering_cmd = float(np.clip(u[1, 0], -self.max_steering,
                                                   self.max_steering)) + self.steering_offset
                 self.arduino_mode = 2  # PI de vitesse sur l'Arduino (retombe a 0 a la cible)
@@ -331,7 +277,8 @@ class SlashController(Node):
                 self.get_logger().info(
                     f"[parking] pos={self.position:+.3f}/{self.propulsion_ref:+.2f} m  "
                     f"y={x[1, 0]:+.3f} m  theta={x[2, 0]:+.3f} rad  "
-                    f"v_cmd={self.propulsion_cmd:+.2f} m/s  delta={self.steering_cmd:+.3f} rad",
+                    f"v_cmd={self.propulsion_cmd:+.2f} m/s  delta={self.steering_cmd:+.3f} rad  "
+                    f"arrive={self.parking_arrive}",
                     throttle_duration_sec=0.5,
                 )
                 #########################################################

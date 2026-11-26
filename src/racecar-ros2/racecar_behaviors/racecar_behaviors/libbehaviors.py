@@ -37,13 +37,32 @@ def multiply_transforms(trans1, rot1, trans2, rot2):
 
 def brushfire(occupancyGrid):
     mapOfWorld = np.zeros(occupancyGrid.shape, dtype=int)
-    mapOfWorld[occupancyGrid==100] = 1 # set all unknowns and obstacles to -1
-    mapOfWorld[occupancyGrid==-1] = 1 
-    
-    # do brushfire algorithm here
-    
-    # brushfire: -1 = obstacle or unknown, safer cells have higher value)
-    
+    mapOfWorld[occupancyGrid==100] = -1 # set all unknowns and obstacles to -1
+    mapOfWorld[occupancyGrid==-1] = -1
+
+    front = mapOfWorld == -1          # au départ, le front = les obstacles
+    valeur = 1
+    H, W = mapOfWorld.shape
+
+    while True:
+        new_front = np.zeros(mapOfWorld.shape, dtype=bool)
+        for i in range(H):
+            for j in range(W):
+                if mapOfWorld[i, j] == 0:     # cellule pas encore visitée
+                    # un de ses 4 voisins fait-il partie du front ?
+                    if (i > 0   and front[i-1, j]) or \
+                       (i < H-1 and front[i+1, j]) or \
+                       (j > 0   and front[i, j-1]) or \
+                       (j < W-1 and front[i, j+1]):
+                        new_front[i, j] = True
+
+        if not new_front.any():
+            break
+
+        mapOfWorld[new_front] = valeur
+        front = new_front
+        valeur += 1
+
     return mapOfWorld
     
         

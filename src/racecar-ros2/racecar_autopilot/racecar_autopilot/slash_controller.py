@@ -44,8 +44,6 @@ class SlashController(Node):
         self.theta_sign = -1.0
         self.max_steering = 0.52  # [rad] ~30 deg, saturation du servo sur l'Arduino
 
-        # Amelioration 1.4.3 : action integrale sur y (auto-pilote, mode 3)
-        # Activable EN DIRECT pour comparer avec / sans :
         #   ros2 param set /controller use_integral true
         self.declare_parameter("use_integral", False)
         self.use_integral = False
@@ -56,23 +54,20 @@ class SlashController(Node):
             "K": np.array([0.316, 0.538]),
             "ubar": 0.0
         }
-        # LQR augmente x_a = [y, theta, z], z = integrale de (y - y_ref)
-        # (meme Q que le mandat + poids 0.5 sur z) -> PID : Kp=0.490, Kd=0.314, Ki=0.224
+
+
         self.params_autopilot_I = {
             "K": np.array([0.490, 0.628, 0.224]),
-            "z_max": 0.5,   # [m.s] limite de l'integrateur (compense jusqu'a ~6 deg de biais)
-            "v_min": 0.3,   # [m/s] on n'integre pas si l'auto est (presque) arretee
+            "z_max": 0.5, 
+            "v_min": 0.3, 
         }
-        # Stationnement : gain par fonction cout (LQR) au lieu du placement de poles
-        #   J = int( (x-x_des)^2 + 30 y^2 + theta^2 + v_des^2 + delta^2 ) dt
-        #   Q = diag(1, 30, 1), R = diag(1, 1)  -> K independant de v0
-        # Ancien gain (placement de poles a v0 = 1 m/s) : [[1, 0, 0], [0, 0.375, 0.6]]
+
         self.params_parking = {
             "K": np.array([[0.44, 0.0,   0.0],
                            [0.0, 1.20, 1.20]]),
             # Anti a-coups en fin de manoeuvre (frottement sec / stick-slip)
-            "v_min": 0.15,       # [m/s] vitesse minimale tant que la cible n'est pas atteinte
-            "tol_x": 0.02,       # [m] zone d'arrivee : arret franc a moins de 2 cm
+            "v_min": 0.15,   
+            "tol_x": 0.02,
         }
 
         # Memory
@@ -215,7 +210,6 @@ class SlashController(Node):
 
                 # 2. Calcul du braquage delta_desire (K1 * x1)
                 if self.use_integral:
-                    # Amelioration : LQR + action integrale sur y
                     delta_desire = self.ctl_autopilot_I(x1, r1)
                 else:
                     # LQR du mandat (PD sur y)
@@ -229,13 +223,6 @@ class SlashController(Node):
                 # 4. Mode 5 = cruise control APP4 sur l'Arduino (vel_ubar + vel_k2 * erreur)
                 self.arduino_mode = 5
 
-                # Debug (2x par seconde) pour valider les signes
-                self.get_logger().info(
-                    f"[autopilot] y={x1[0]:+.3f} m  theta={x1[1]:+.3f} rad  "
-                    f"delta={delta_desire:+.3f} rad  v={self.velocity:.2f} m/s  "
-                    f"I={'on' if self.use_integral else 'off'} z={self.z_y:+.3f}",
-                    throttle_duration_sec=0.5,
-                )
                 #########################################################
 
             elif self.high_level_mode == 4:
